@@ -193,6 +193,7 @@ You'll need to hit 'u' 3 more times to get back to 100.json.
 
 
 COMMAND SUMMARY
+
     * 'a voice' to append,
     * 'b' to show bar counts for each voice,
     * 'c voice' to compile,
@@ -203,7 +204,8 @@ COMMAND SUMMARY
     * 'r' to redo, i.e undo the last undo,
     * 'u' to undo last command,
     * 'v bar' to view bar plus preceding and following bars,
-    * 'q' to quit.       
+    * 'q' to quit.
+
 
 
 APPEND

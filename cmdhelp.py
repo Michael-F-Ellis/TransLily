@@ -102,6 +102,7 @@ TransLily's help pages are always available by typing 'help' at any command prom
 
 commands = r"""
 COMMAND SUMMARY
+
     * 'a voice' to append,
     * 'b' to show bar counts for each voice,
     * 'c voice' to compile,
@@ -112,7 +113,8 @@ COMMAND SUMMARY
     * 'r' to redo, i.e undo the last undo,
     * 'u' to undo last command,
     * 'v bar' to view bar plus preceding and following bars,
-    * 'q' to quit.       
+    * 'q' to quit.
+
 """,
 
 autosave = r"""
