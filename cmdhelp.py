@@ -530,6 +530,14 @@ This file is part of TransLily.
 
 def mk_readme():
     """ Re-create the README file using the text in HELP above. """
+    print "TransLily"
+    print "========="
+    print """
+A minimalist assistant for transcribing vocal and instrumental parts in
+LilyPond notation.
+          """
+
+    print
     print "TransLily Documentation (version 0.1)"
     print
     print "All of the following is available from the online help in the program"
@@ -539,5 +547,7 @@ def mk_readme():
         append barcounts compile edit paste quit redo template undo view
         """.split():
         print HELP[key]
+    
+    print "CONTACT: Michael Ellis, <michael DOT f DOT ellis AT gmail DOT com>"
 
 
