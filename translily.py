@@ -103,8 +103,12 @@ class TransLily(cmd.Cmd):
     def __init__(self, music, dirname, base):
         cmd.Cmd.__init__(self)
         self.last_voice = None
+
+        self.aptn = re.compile(r'^(\w+)$')
+
         self.eptn2 = re.compile(r'^(\d+)\s+(\d+)$') 
-        self.eptn3 = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)$') 
+        self.eptn3 = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)$')
+
         self.pptn = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)\s+(\w+)\s+(\d+)$')
         self.tptn = re.compile(r'^(_top|_bottom)\s+(body|items)$')
         self.vptn = re.compile(r'^(\w+)\s+(\d+)$') 
@@ -148,25 +152,25 @@ class TransLily(cmd.Cmd):
         """ Help for the 'a' cmd."""
         print cmdhelp.HELP['append']
 
-    def do_a(self, voice):
+    def do_a(self, line):
         """ 'a voice' Append to existing voice or create new one. """
-        voice = self.voicefix(voice, 'append')
-        if voice is None: 
-            return 
-
+        voice = None
         bar = None
+        args = tf.parse_action(self.aptn, line)
+        if args is not None:
+            voice = args[0]
+        else:
+            return
+
         if self.music.has_key(voice):
-            tf.get_input(self.music, voice, bar)
+            tf.get_input(self.music, voice, bar, insert=True)
         else:
             print "No such voice: {}".format(voice)
-            _ = tf.rlinput("Add it? (y/n) ", "y")
-            if _.startswith('y'):
-                tf.add_voice(voice, self.music, jsonf)
-                tf.get_input(self.music, voice, bar)
-            else:
-                return
-        ## Save the input gathered so far
+            print "Use the 'n' command to add new voices."
+            return
+        
         jsonf.save(self.music)
+
 
     def help_b(self):
         """ Help barcounts """
@@ -193,6 +197,14 @@ class TransLily(cmd.Cmd):
         else:
             self.last_voice = voice
 
+        if voice != 'structure':
+            vlen =  len(self.music[voice]['rhythm'])
+            slen =  len(self.music['structure']['rhythm'])
+            if vlen > slen:
+                msg = "Can't compile. 'structure' is shorter than '{}'"
+                print msg.format(voice)
+                return
+
         ## open an output file with .ly extension in write mode
         ## in the project folder
         voice_order = ['structure', voice]
@@ -206,6 +218,40 @@ class TransLily(cmd.Cmd):
         os.system('{} {} {}'.format(lilyprog, outspec, lilyname ))
         return
 
+    def help_d(self):
+        """ Help for 'd' command """
+        print cmdhelp.HELP['delete']
+
+
+    def do_d(self, line):
+        """ 'd voice firstbar lastbar' delete range of bars """
+        args = tf.parse_action(self.eptn3, line)
+        if args is not None:
+            voice, firstbar, lastbar = args
+            firstbar = int(firstbar)
+            lastbar = int(lastbar)
+        else:
+            return
+
+        if not self.music.has_key(voice):
+            print "No voice named {}!".format(voice)
+        
+        elif firstbar < 1:
+            print "firstbar must be >= 1"
+        
+        elif lastbar < firstbar:
+            print "lastbar {} must be >= firstbar {}".format(lastbar, firstbar)
+
+        else:
+            tf.deletebars(self.music, voice, firstbar, lastbar)
+            print "deleted {} {} thru {}".format(voice, firstbar, lastbar)
+            if [] == self.music[voice]['rhythm']:
+                self.music.pop(voice)
+                print "deleted empty voice {}".format(voice)
+
+            jsonf.save(self.music)
+
+        
     def help_e(self):
         """ Edit command help """
         print cmdhelp.HELP['edit']
@@ -269,6 +315,59 @@ class TransLily(cmd.Cmd):
 
             ## Save the input
             jsonf.save(self.music)
+
+    def help_i(self):
+        """ Help for 'i' command """
+        print cmdhelp.HELP['insert']
+
+
+    def do_i(self, line):
+        """ 'i voice firstbar lastbar' rests in range of bars """
+        args = tf.parse_action(self.eptn3, line)
+        if args is not None:
+            voice, firstbar, lastbar = args
+            firstbar = int(firstbar)
+            lastbar = int(lastbar)
+        else:
+            return
+
+        if not self.music.has_key(voice):
+            print "No voice named {}!".format(voice)
+        
+        elif firstbar < 1:
+            print "firstbar must be >= 1"
+        
+        elif lastbar < firstbar:
+            print "lastbar {} must be >= firstbar {}".format(lastbar, firstbar)
+
+        else:
+            tf.insert_rests(self.music, voice, firstbar, lastbar)
+            jsonf.save(self.music)
+
+    def help_n(self):
+        """ Help for new voice command """
+        print cmdhelp.HELP['new']
+        
+    def do_n(self, line):
+        """ Add a new voice """
+        voice = None
+        bar = None
+        args = tf.parse_action(self.aptn, line)
+        if args is not None:
+            voice = args[0]
+        else:
+            return
+
+
+        if self.music.has_key(voice):
+            print "Voice {} already exists!".format(voice)
+            return
+
+        print "Adding voice {}".format(voice)
+        tf.add_voice(voice, self.music, jsonf)
+        tf.get_input(self.music, voice, bar)
+
+        jsonf.save(self.music)
 
     def help_p(self):
         """ Paste command help """

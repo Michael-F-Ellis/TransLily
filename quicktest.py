@@ -29,6 +29,27 @@ try:
 except OSError:
     pass
 
+def append(child, voice, pitches, rhythm, lyrics):
+    """ Append music to voice """
+    snd = child.sendline
+    exp = child.expect
+
+    snd('a {}'.format(voice))
+    exp(r"pitches: bar \d+")
+    snd(pitches)
+    snd('')
+
+    exp(r"rhythm: bar \d+")
+    snd(rhythm)
+    snd('')
+
+    if lyrics is not None:
+        exp(r"lyrics: bar \d+")
+        snd(lyrics)
+        snd('')
+
+    exp(r'\(Cmd\)')
+
 child = pexpect.spawn('./translily.py {}'.format(base))
 #child = pexpect.spawn('./BaritoneTemplate.py {}'.format(base))
 child.logfile = file('quicktest.log','w+')
@@ -46,9 +67,8 @@ exp("Title")
 snd('')
 
 ## Add 'bass1' voice
-snd('a bass1')
-exp('No such voice: bass1')
-snd('y')
+snd('n bass1')
+exp('Adding voice bass1')
 exp('name :')
 snd('')
 exp('abbr :')
@@ -75,6 +95,9 @@ snd('')
 exp('(Cmd)')
 snd('c bass1')
 exp('Success:.*(Cmd)')
+
+append(child, 'bass1', 'e f g a', '4 4 4 4', 'la la la la')
+
 child.interact()
 #snd('q')
 exp(pexpect.EOF)

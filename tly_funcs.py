@@ -448,50 +448,100 @@ def mklily(music, fp, voice_order):
     print >> fp, bottom
 
 import readline
-def rlinput(prompt, prefill=''):
+def rlinput(prompt, prefill='', oneline=False):
     """
     Get user input with readline editing support.
     """
-    readline.set_startup_hook(lambda: readline.insert_text(prefill))
+    sentinel = ''
+    if prefill is None:
+        prefill = ''
+    
+    def only_once(text):
+        """ generator for startup hook """
+        readline.insert_text(text)
+        yield
+        while True:
+            yield
+
+    nhist0 = readline.get_current_history_length()
+    gen = only_once(prefill)
+    readline.set_startup_hook(gen.next)
     try:
-        edited = raw_input(prompt)
+        if oneline:
+            edited = raw_input(prompt)
+        else:
+            print prompt
+            edited = "\n".join(iter(raw_input, sentinel))
+
         if edited.endswith(r'%%'):
             ## Invoke external editor
             edited = external_edit(edited[0:-2])
         return edited
     finally:
+        nhist1 = readline.get_current_history_length()
+        #print nhist0, nhist1
+        for i in reversed(range(nhist0, nhist1)):
+            #print "removing {}".format(1)
+            readline.remove_history_item(i)
+
         readline.set_startup_hook()
 
 # ignore pylint warnings about too many branches and statements
 # pylint: disable = R0912, R0915
-def get_input(music, voice, bar):
+def get_input(music, voice, bar, insert=False):
     """
     The overall handler for user input. Prompts for 
     pitches, rhythm, and lyrics (for voices with lyrics).
-    Pre-processes the input and stores it into the _music dict().
+    Pre-processes the input and stores it into the music dict().
     """
+    ## Construct shorter refereences
+    vpitches = music[voice]['pitches']
+    vrhythm = music[voice]['rhythm']
+    try:
+        vlyrics = music[voice]['lyrics']
+    except KeyError:
+        vlyrics = None
+
     ## Convert bar number to list index -- assumes music starts at bar 1  
     # pylint: disable=C0102
     if bar == None:
-        appending = True
-        ibar = len(music[voice]['rhythm'])
-        bar = ibar + 1
+        ## insert a bar at the end of the lists
+        insert = True
+        bar = len(vrhythm)
+        #bar = ibar + 1
+    if insert:
+        if len(vrhythm) == 0:
+            ibar = 0
+            bar = 1
+        else:    
+            bar += 1
+            ibar = bar - 1
+       
+        vpitches.insert(ibar, '')
+        vrhythm.insert(ibar, '')
+        if vlyrics is not None:
+            vlyrics.insert(ibar,'')
     else:
-        ibar = bar - 1
-        appending = False
+        ## editing an existing bar
+        ibar = bar - 1 
+    
 
+    #msg = "bar, ibar, nbars, insert = ({}, {}, {}, {})"
+    #print msg.format(bar, ibar, len(vrhythm), insert)
 
     sentinel = ''
 
     prompt = "{} pitches: bar {}\n".format(voice, bar)
     while True:     
-        print prompt
-        if appending:
-            pitches = '\n'.join(iter(raw_input, sentinel))
+        #print prompt
+        if insert:
+            #pitches = '\n'.join(iter(raw_input, sentinel))
+            pitches = rlinput(prompt, sentinel)
             if pitches == sentinel:
                 ## Interpret empty string to mean user wants a full bar rest
                 ## and no lyrics.
-                tsig = last_time_signature(music['structure']['rhythm'])
+                srhythm = music['structure']['rhythm']
+                tsig = last_time_signature(srhythm[0:ibar+1])
                 if tsig is None:
                     print "No time signature found in structure!"
                     return
@@ -501,20 +551,27 @@ def get_input(music, voice, bar):
                         rest = 'r'  #special case
                     else:
                         rest = 'R'
-                    music[voice]['pitches'].append(rest)
-                    music[voice]['rhythm'].append(barlength)
-                    if music[voice].has_key('lyrics'): 
-                        music[voice]['lyrics'].append('')
+
+                    vpitches[ibar] = rest
+                    vrhythm[ibar] = barlength
+                    
+                    #music[voice]['pitches'].append(rest)
+                    #music[voice]['rhythm'].append(barlength)
+                    #if music[voice].has_key('lyrics'): 
+                    #    music[voice]['lyrics'].append('')
                     msg = "Appended full measure rest of length {}."
                     print msg.format(barlength)
                     return
 
             else:
-                music[voice]['pitches'].append(pitches)
+                vpitches[ibar] = pitches
+                #music[voice]['pitches'].append(pitches)
         else:
-            prefill = music[voice]['pitches'][ibar]
-            pitches  = rlinput('', prefill)
-            music[voice]['pitches'][ibar] = pitches
+            #prefill = music[voice]['pitches'][ibar]
+            prefill = vpitches[ibar]
+            pitches  = rlinput(prompt, prefill)
+            vpitches[ibar]  = pitches
+            #music[voice]['pitches'][ibar] = pitches
             
         if pitches != '':
             print "ok"
@@ -522,31 +579,40 @@ def get_input(music, voice, bar):
 
     prompt = "{} rhythm: bar {}\n".format(voice, bar)
     while True:     
-        print prompt
-        if appending:
-            rhythm = '\n'.join(iter(raw_input, sentinel))
-            music[voice]['rhythm'].append(rhythm)
+        #print prompt
+        if insert:
+            #rhythm = '\n'.join(iter(raw_input, sentinel))
+            rhythm = rlinput(prompt, sentinel)
+            vrhythm[ibar] = rhythm
+            #music[voice]['rhythm'].append(rhythm)
         else:
-            prefill = music[voice]['rhythm'][ibar]
-            rhythm  = rlinput('', prefill)
-            music[voice]['rhythm'][ibar] = rhythm
+            #prefill = music[voice]['rhythm'][ibar]
+            prefill = vrhythm[ibar]
+            rhythm  = rlinput(prompt, prefill)
+            vrhythm[ibar] = rhythm
+            #music[voice]['rhythm'][ibar] = rhythm
             
         if rhythm != '':
             print "ok"
             break
 
-    if not music[voice].has_key('lyrics'):
+    #if not music[voice].has_key('lyrics'):
+    if vlyrics is None:
         return
 
     prompt = "{} lyrics: bar {}\n".format(voice, bar)
-    print prompt
-    if appending:
-        lyrics = '\n'.join(iter(raw_input, sentinel))
-        music[voice]['lyrics'].append(lyrics)
+    #print prompt
+    if insert:
+        #lyrics = '\n'.join(iter(raw_input, sentinel))
+        lyrics = rlinput(prompt, sentinel)
+        vlyrics[ibar] = lyrics
+        #music[voice]['lyrics'].append(lyrics)
     else:
-        prefill = music[voice]['lyrics'][ibar]
-        lyrics  = rlinput('', prefill)
-        music[voice]['lyrics'][ibar] = lyrics
+        #prefill = music[voice]['lyrics'][ibar]
+        prefill = vlyrics[ibar]
+        lyrics  = rlinput(prompt, prefill)
+        vlyrics[ibar] = lyrics
+        #music[voice]['lyrics'][ibar] = lyrics
 
     print "ok"
     return
@@ -573,7 +639,7 @@ def add_voice(voice, music, jsonfp):
         props = "name abbr rel clef has_lyrics".split(' ')
         defaults = ('Bass I', 'B1', 'c', 'bass', 'y')
         for k, dflt in zip(props, defaults) :
-            _[k] = rlinput("{} :".format(k), dflt)
+            _[k] = rlinput("{} :".format(k), dflt, oneline=True)
 
         if _['has_lyrics'].startswith('y'):
             _['has_lyrics'] = True
@@ -601,7 +667,7 @@ def edit_template(name, which, music):
     elif which == 'items':
         itemd = music[name][which]
         for k, v in itemd.iteritems():
-            itemd[k] = rlinput("{} :".format(k), v)
+            itemd[k] = rlinput("{} :".format(k), v, oneline=True)
             
         return True
 
@@ -632,9 +698,68 @@ def viewbar(music, voice, bar):
             pass
         print    
 
+def cutrange(seq, i0, i1):
+    """ 
+    Return new sequence with elements at indices i0:i1 inclusive.
+    >>> cutrange([0, 1, 2, 3, 4], 2, 3)
+    [0, 1, 4]
+
+    >>> cutrange([0, 1, 2, 3, 4], 2, 4)
+    [0, 1]
+
+    >>> cutrange([0, 1, 2, 3, 4], 0, 10)
+    []
+    """
+    return seq[0:i0] + seq[i1+1:]
+
+def deletebars(music, voice, firstbar, lastbar):
+    """ Delete bar numbers firstbar to lastbar, inclusive. """
+    ifirst = firstbar - 1
+    ilast  = lastbar - 1
+    vdict = music[voice]
+    vdict['pitches'] = cutrange(vdict['pitches'], ifirst, ilast)
+    vdict['rhythm'] = cutrange(vdict['rhythm'], ifirst, ilast)
+    
+    if music[voice].has_key('lyrics'):
+        vdict['lyrics'] = cutrange(vdict['lyrics'], ifirst, ilast)
+
+
+def insertrange(seq, values, i0):
+    """ 
+    Return new sequence with values inserted starting at index i0.
+    >>> insertrange([0,1,2,6,7], [3,4,5], 3)
+    [0, 1, 2, 3, 4, 5, 6, 7]
+
+    >>> insertrange([3,4,5], [0,1,2], 0)
+    [0, 1, 2, 3, 4, 5]
+    """
+    return  seq[0:i0] + values + seq[i0:]
+
+
+def insert_rests(music, voice, firstbar, lastbar):
+    """ Insert full measure rests from firstbar to lastbar """
+    i0 = firstbar - 1
+    nbars = lastbar - firstbar + 1
+    vdict = music[voice]
+
+    srhythm = music['structure']['rhythm']
+    tsig = last_time_signature(srhythm[0:i0+1])
+    if tsig is None:
+        print "No time signature found in structure!"
+        return
+    else:
+        barlength = "1*"+tsig
+        if voice == 'structure':
+            rest = 'r'  #special case
+        else:
+            rest = 'R' 
+
+        vdict['pitches'] = insertrange(vdict['pitches'],
+                                       [rest,]*nbars, i0)        
+        vdict['rhythm'] = insertrange(vdict['rhythm'],
+                                      [barlength,]*nbars, i0)        
+    
 if __name__ == '__main__':
     from doctest import testmod
     testmod()
-
-
 

@@ -7,7 +7,7 @@ LilyPond notation.
 
 TransLily Documentation (version 0.1)
 
-All of the following is available from the online help in the program
+All of the following topics are in the online help in the program
 
 
 LICENSE
@@ -197,33 +197,27 @@ COMMAND SUMMARY
     * 'a voice' to append,
     * 'b' to show bar counts for each voice,
     * 'c voice' to compile,
-    * 'e voice bar nbars' to edit,
+    * 'd voice firstbar lastbar' delete range of bars,
+    * 'e voice firstbar  lastbar' to edit,
     * 'help cmds' to show this summary,
+    * 'i voice firstbar lastbar' insert a range of bars,
+    * 'n newvoice' to add a new voice,
     * 'p fromvoice firstbar lastbar tovoice startbar' to paste,
     * 't _top|_bottom body|items' to edit template info (ADVANCED),
     * 'r' to redo, i.e undo the last undo,
     * 'u' to undo last command,
-    * 'v bar' to view bar plus preceding and following bars,
+    * 'v voice bar' to view bar plus preceding and following bars,
     * 'q' to quit.
 
 
 
 APPEND
 The 'a voice' (append) command adds one bar of music to the specified voice. If
-the voice doesn't exist, you'll be asked if you wawant to create it.  Answer
+the voice doesn't exist, you'll be asked if you want to create it.  Answer
 'y' to create the voice.  In the example below, a new voice is created and the
 first bar of pitches, rhythm, and lyrics are added.
 
     (Cmd) a bass2
-    No such voice: bass2
-    Add it? (y/n) y
-    name :Bass II
-    abbr :B2
-    rel :c
-    clef :bass
-    has_lyrics :y
-    Saved 3.json
-    bass2 added.
     bass2 pitches: bar 1
 
     c d e f
@@ -244,26 +238,31 @@ first bar of pitches, rhythm, and lyrics are added.
 
 In the example above, the program prompted us to enter 
 
-1. Voice name (name) -- This is the formal name that will be printed in the
-   score at the start of the first stave.
-2. Abbreviation, (abbr) -- This is the short name that appears before staves 
-   after the first.
-3. Relative pitch (rel) -- This gets supplied to a LilyPond \relative directive.
-4. Lyrics flag (has_lyrics) -- Answer 'y' for choral voices, 'n' for instruments.
+    Pitches : Enter valid Lilypond pitch names including modifiers. There
+    should be one pitch for each note in the bar, separated by one or more
+    spaces. The default pitch symbol set is English and/or Chromatic Fixed Do
+    solfege. If you prefer symbols from another lanaguage,  you can do so by
+    modifying the '_top' template in config.py.
 
-After the voice was created, the program printed 'Saved 3.json' to let us
+    Rhythm : Enter the durations for each note plus dynamics, articulations,
+    and any other valid LilyPond notations for the bar.
+
+    Lyrics:  Enter the words and syllables that go with the notes in the bar.
+    The normal LilyPond conventions for lyric entry applly.
+
+After  the program printed 'Saved 4.json' to let us
 know that the score had been saved with the new empty voice added. 
 
-Finally, the program prompted for pitches, rhythms, and lyrics for the first
-bar and saved again before returning to the (Cmd) prompt to await the next
-command.
 
 Tips and Shortcuts:
-    1. You can enter 'a' without a voice name to append to the whichever voice
-       you last appended, edited, or compiled.
-    2. You can enter LilyPond code for pitches/rhythms/lyrics on multiple
+    1. You can enter LilyPond code for pitches/rhythms/lyrics on multiple
        lines, but this is rarely needed. Entering a blank line terminates the
        input and moves to the prompt for the next item.
+
+    2. Hitting Return at a (Cmd) prompt will re-execute the last command. This
+       provides a convenient workflow for appending a series of measures to a
+       voice without having to retype the 'a voice' command.
+
     3. Entering a blank line at the pitches prompt (i.e. no pitches) is a
        shortcut for inserting a full measure rest and no lyrics.  You can use
        this feature to rapidly enter a series of rest measures by repeatedly
@@ -341,6 +340,26 @@ to find where the music entry went wrong.
 
 
 
+DELETE
+The 'd voice firstbar lastbar' (delete) command removes a range of bars from
+firstbar to lastbar, inclusive, from the specified voice. If the deletion
+removes all bars in the voice, the voice itself is also deleted, as illustrated
+in the example below.  
+
+    (Cmd) b
+      bass2 : 2 bars
+      structure : 1 bars
+      bass1 : 2 bars
+    (Cmd) d bass2 1 2
+    deleted bass2 1 thru 2
+    deleted empty voice bass2
+    Saved 7.json
+    (Cmd) b
+      structure : 1 bars
+      bass1 : 2 bars
+    (Cmd)
+
+
 EDIT
 The 'e voice firstbar lastbar' (edit) command prompts you to edit the
 pitches/rhythms/lyrics/ in each bar from firstbar to lastbar inclusive.  You
@@ -395,6 +414,91 @@ Here's an example session editing 3 bars in the tenor2 part.
 Note: Be careful not to hit an extra Return at the end of the edit for the
 last bar. Otherwise, the automatic 'redo the last command' feature will walk
 you through the edit all over again!  
+
+
+
+INSERT RESTS
+The 'i voice firstbar lastbar' inserts new measures in the specified voice and
+fills them with full-measure rests according to the most recent prior time
+signature in 'structure'.  The newly inserted measures become firstbar thru
+lastbar, inclusive. Prior measure numbers are unaffected and succeeding measure
+numbers are shifted forward beginning with 1 + lastbar, as illustrated in the
+example below.
+
+(Cmd) b
+  structure : 1 bars
+  bass1 : 2 bars
+(Cmd) i structure 2 10
+Saved 4.json
+(Cmd) b
+  structure : 10 bars
+  bass1 : 2 bars
+(Cmd) v structure 2
+structure bar 1:
+r
+\time @4/4 1
+
+structure bar 2:
+r
+1*4/4
+
+structure bar 3:
+r
+1*4/4
+
+
+
+NEW
+The 'n voice' (new) command adds a new voice.   In the example below, a new voice is created and the
+first bar of pitches, rhythm, and lyrics are added.
+
+    (Cmd) n bass2
+    Adding voice bass2
+    name :Bass II
+    abbr :B2
+    rel :c
+    clef :bass
+    has_lyrics :y
+    Saved 3.json
+    bass2 added.
+    bass2 pitches: bar 1
+
+    c d e f
+
+    ok
+    bass2 rhythm: bar 1
+
+    4 4 4 4
+
+    ok
+    bass2 lyrics: bar 1
+
+    Here's Trans -- Lil -- y!
+
+    ok
+    Saved 4.json
+    (Cmd) 
+
+In the example above, the program prompted us to enter 
+
+    1. Voice name (name) -- This is the formal name that will be printed in the
+       score at the start of the first stave.
+
+    2. Abbreviation, (abbr) -- This is the short name that appears before staves 
+       after the first.
+
+    3. Relative pitch (rel) -- This gets supplied to a LilyPond \relative directive.
+
+    4. Lyrics flag (has_lyrics) -- Answer 'y' for choral voices, 'n' for instruments.
+
+After the voice was created, the program printed 'Saved 3.json' to let us
+know that the score had been saved with the new empty voice added. 
+
+Finally, the program prompted for pitches, rhythms, and lyrics for the first
+bar and saved again before returning to the (Cmd) prompt to await the next
+command.
+
+*See Also* The Tips and Shortcuts documented with the 'a voice' (append) command.
 
 
 
