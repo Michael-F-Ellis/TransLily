@@ -102,11 +102,11 @@ class TransLily(cmd.Cmd):
 
     def __init__(self, music, dirname, base):
         cmd.Cmd.__init__(self)
-        self.last_voice = None
+        #self.last_voice = None
 
         self.aptn = re.compile(r'^(\w+)$')
 
-        self.eptn2 = re.compile(r'^(\d+)\s+(\d+)$') 
+        #self.eptn2 = re.compile(r'^(\d+)\s+(\d+)$') 
         self.eptn3 = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)$')
 
         self.pptn = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)\s+(\w+)\s+(\d+)$')
@@ -117,16 +117,106 @@ class TransLily(cmd.Cmd):
         self.dirname = dirname
         self.base = base
         print dirname, base
-    def voicefix(self, voice, actionverb):
-        """ Support omitting voice name from commands """
-        if voice in (None, ''):
-            if self.last_voice is not None:
-                return self.last_voice
-            else:
-                print "Please specify a voice to {}!".format(actionverb)
-                return None
+
+    def _voice_in_music(self, voice):
+        """ Returns True if voice exists in self.music, False otherwise. """
+        if self.music.has_key(voice):
+            return True
         else:
-            return voice
+            print "No voice named {}!".format(voice)
+            return False
+
+
+    def _validate_voice(self, line):
+        """ 
+        Validator for commands that take "voice' as the only arg. 
+        Returns voicename if validation succeeds, None
+        otherwise.
+        """
+        args = tf.parse_action(self.aptn, line)
+        if args is not None:
+            voice = args[0]
+        else:
+            msg = "Can't interpret '{}' as 'voice'"
+            print msg.format(line)
+            return None
+
+        if not self._voice_in_music(voice):
+            ret = None
+
+        else:
+            ret = voice
+
+        return ret    
+    
+    def _validate_voice_bar(self, line):
+        """ 
+        Validator for commands that take "voice bar' as args. 
+        Returns (voice, bar) if validation succeeds, None
+        otherwise.
+        """
+        args = tf.parse_action(self.vptn, line)
+        if args is not None:
+            voice, bar = args
+            bar = int(bar)
+        else:
+            msg = "Can't interpret '{}' as 'voice bar'"
+            print msg.format(line)
+            return None
+
+        if not self._voice_in_music(voice):
+            ret = None
+
+        elif bar < 1:
+            print "bar must be >= 1"
+            ret = None
+        else:
+            ret = voice, bar
+
+        return ret    
+
+    def _validate_voice_first_last(self, line):
+        """ 
+        Validator for commands that take "voice firstbar lastbar' as args. 
+        Returns (voice, firstbar, lastbar) if validation succeeds, None
+        otherwise.
+        """
+        args = tf.parse_action(self.eptn3, line)
+        if args is not None:
+            voice, firstbar, lastbar = args
+            firstbar = int(firstbar)
+            lastbar = int(lastbar)
+        else:
+            msg = "Can't interpret '{}' as 'voice firsbar lastbar'"
+            print msg.format(line)
+            return None
+
+        if not self._voice_in_music(voice):
+            ret = None
+
+        elif firstbar < 1:
+            print "firstbar must be >= 1"
+            ret = None
+
+        elif lastbar < firstbar:
+            msg = "lastbar ({}) is less than firstbar ({})"
+            print msg.format(lastbar, firstbar)
+            ret = None
+        else:
+            ret = voice, firstbar, lastbar
+
+        return ret    
+
+    #def _voicefix(self, voice, actionverb):
+    #    """ DEPRECATED Support omitting voice name from commands """
+    #    if voice in (None, ''):
+    #        if self.last_voice is not None:
+    #            return self.last_voice
+    #        else:
+    #            print "Please specify a voice to {}!".format(actionverb)
+    #            return None
+    #    else:
+    #        return voice
 
     def help_cmds(self):
         """ Show the command summary """
@@ -154,21 +244,11 @@ class TransLily(cmd.Cmd):
 
     def do_a(self, line):
         """ 'a voice' Append to existing voice or create new one. """
-        voice = None
-        bar = None
-        args = tf.parse_action(self.aptn, line)
-        if args is not None:
-            voice = args[0]
-        else:
-            return
-
-        if self.music.has_key(voice):
-            tf.get_input(self.music, voice, bar, insert=True)
-        else:
-            print "No such voice: {}".format(voice)
-            print "Use the 'n' command to add new voices."
-            return
-        
+        voice = self._validate_voice(line)
+        if voice is None: 
+            return 
+       
+        tf.get_input(self.music, voice, None, insert=True)
         jsonf.save(self.music)
 
 
@@ -185,18 +265,12 @@ class TransLily(cmd.Cmd):
         """ Compile command help """
         print cmdhelp.HELP['compile']
 
-    def do_c(self, voice):
+    def do_c(self, line):
         """ 'c voice' to compile """
-        voice = self.voicefix(voice, 'compile')
-        if voice is None: 
-            return 
-
-        if not self.music.has_key(voice):
-            print "No voice named {}!".format(voice)
+        voice = self._validate_voice(line)
+        if voice is None:
             return
-        else:
-            self.last_voice = voice
-
+       
         if voice != 'structure':
             vlen =  len(self.music[voice]['rhythm'])
             slen =  len(self.music['structure']['rhythm'])
@@ -225,31 +299,18 @@ class TransLily(cmd.Cmd):
 
     def do_d(self, line):
         """ 'd voice firstbar lastbar' delete range of bars """
-        args = tf.parse_action(self.eptn3, line)
-        if args is not None:
-            voice, firstbar, lastbar = args
-            firstbar = int(firstbar)
-            lastbar = int(lastbar)
-        else:
+        try:
+            voice, firstbar, lastbar = self._validate_voice_first_last(line)
+        except TypeError:
             return
 
-        if not self.music.has_key(voice):
-            print "No voice named {}!".format(voice)
-        
-        elif firstbar < 1:
-            print "firstbar must be >= 1"
-        
-        elif lastbar < firstbar:
-            print "lastbar {} must be >= firstbar {}".format(lastbar, firstbar)
+        tf.deletebars(self.music, voice, firstbar, lastbar)
+        print "deleted {} {} thru {}".format(voice, firstbar, lastbar)
+        if [] == self.music[voice]['rhythm']:
+            self.music.pop(voice)
+            print "deleted empty voice {}".format(voice)
 
-        else:
-            tf.deletebars(self.music, voice, firstbar, lastbar)
-            print "deleted {} {} thru {}".format(voice, firstbar, lastbar)
-            if [] == self.music[voice]['rhythm']:
-                self.music.pop(voice)
-                print "deleted empty voice {}".format(voice)
-
-            jsonf.save(self.music)
+        jsonf.save(self.music)
 
         
     def help_e(self):
@@ -258,48 +319,12 @@ class TransLily(cmd.Cmd):
 
     def do_e(self, line):
         """ 'e voice firstbar lastbar' edit a range of bars """
-        args = tf.parse_action(self.eptn3, line)
-        if args is not None:
-            voice, firstbar, lastbar = args
-
-        else:
-            args = tf.parse_action(self.eptn2, line)
-            if args is not None:
-                voice = None
-                firstbar, lastbar = args
-            else:
-                print "Can't interpret '{}' as args to 'e' command".format(line)
-                return
-
-        voice = self.voicefix(voice, 'edit')
-        if voice is None: 
-            return 
-
-        if not self.music.has_key(voice):
-            print "No voice named {}!".format(voice)
-            return
-            
-        else:
-            self.last_voice = voice
-
-
         try:
-            firstbar = int(firstbar)
-        except ValueError:
-            print "{} is not a valid bar number".format(firstbar)
+            voice, firstbar, lastbar = self._validate_voice_first_last(line)
+        except TypeError:
             return
 
-        try:
-            lastbar = int(lastbar)
-        except ValueError:
-            print "{} is not a valid bar count".format(lastbar)
-            return
-
-        if firstbar < 1:
-            print "First bar must be greater than 0"
-            return
-
-        elif firstbar > tf.barcount(voice, self.music):
+        if firstbar > tf.barcount(voice, self.music):
             print "There's no bar {} to edit in {}.".format(firstbar, voice)
             return
 
@@ -323,26 +348,13 @@ class TransLily(cmd.Cmd):
 
     def do_i(self, line):
         """ 'i voice firstbar lastbar' rests in range of bars """
-        args = tf.parse_action(self.eptn3, line)
-        if args is not None:
-            voice, firstbar, lastbar = args
-            firstbar = int(firstbar)
-            lastbar = int(lastbar)
-        else:
+        try:
+            voice, firstbar, lastbar = self._validate_voice_first_last(line)
+        except TypeError:
             return
 
-        if not self.music.has_key(voice):
-            print "No voice named {}!".format(voice)
-        
-        elif firstbar < 1:
-            print "firstbar must be >= 1"
-        
-        elif lastbar < firstbar:
-            print "lastbar {} must be >= firstbar {}".format(lastbar, firstbar)
-
-        else:
-            tf.insert_rests(self.music, voice, firstbar, lastbar)
-            jsonf.save(self.music)
+        tf.insert_rests(self.music, voice, firstbar, lastbar)
+        jsonf.save(self.music)
 
     def help_n(self):
         """ Help for new voice command """
@@ -350,22 +362,20 @@ class TransLily(cmd.Cmd):
         
     def do_n(self, line):
         """ Add a new voice """
-        voice = None
-        bar = None
         args = tf.parse_action(self.aptn, line)
-        if args is not None:
-            voice = args[0]
-        else:
+        if args is None:
+            msg = "Can't interpret '{}' as 'voice'"
+            print msg.format(line)
             return
 
-
+        voice = args[0]
         if self.music.has_key(voice):
             print "Voice {} already exists!".format(voice)
             return
 
         print "Adding voice {}".format(voice)
         tf.add_voice(voice, self.music, jsonf)
-        tf.get_input(self.music, voice, bar)
+        tf.get_input(self.music, voice, None)
 
         jsonf.save(self.music)
 
@@ -442,19 +452,13 @@ class TransLily(cmd.Cmd):
 
     def do_v(self, line):
         """ View pitches, rhythm, and lyrics for selected bar. """
-        args = tf.parse_action(self.vptn, line)
-        if args is not None:
-            voice, bar = args
-        else:
-            print "Can't interpret {} as view command".format(line)
+        
+        try:
+            voice, firstbar, lastbar = self._validate_voice_first_last(line)
+        except TypeError:
             return
 
-        if not self.music.has_key(voice):
-            print "No voice named {}!".format(voice)
-            return
-
-        bar = int(bar)
-        for b in range(bar - 1, bar + 2):
+        for b in range(firstbar - 1, lastbar + 1):    
             tf.viewbar(self.music, voice, b)
         
         return

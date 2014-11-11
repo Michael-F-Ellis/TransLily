@@ -115,7 +115,7 @@ COMMAND SUMMARY
     * 't _top|_bottom body|items' to edit template info (ADVANCED),
     * 'r' to redo, i.e undo the last undo,
     * 'u' to undo last command,
-    * 'v voice bar' to view bar plus preceding and following bars,
+    * 'v voice firstbar lastbar' to view a range of bars,
     * 'q' to quit.
 
 """,
@@ -525,12 +525,12 @@ order.  See the 'autosave' topic for more information.
 
 view = r"""
 VIEW
-The 'v voice bar' (view) command prints the pitch/rhythm/lyric tokens you've entered
-for the specified voice and bar number. The same information is provided for
-the preceding and following bars to assist in locating LilyPond syntax
-problems, e.g.
+The 'v voice firstbar lastbar' (view) command prints the pitch/rhythm/lyric
+tokens you've entered for the specified voice and bar numbers. The same
+information is provided for the preceding and following bars to assist in
+locating LilyPond syntax problems, e.g.
 
-    (Cmd) v tenor2 27
+    (Cmd) v tenor2 26 28
     tenor2 bar 26:
     bf, bf a
     2 4 4
