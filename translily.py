@@ -458,7 +458,7 @@ class TransLily(cmd.Cmd):
         except TypeError:
             return
 
-        for b in range(firstbar - 1, lastbar + 1):    
+        for b in range(firstbar, lastbar + 1):    
             tf.viewbar(self.music, voice, b)
         
         return
