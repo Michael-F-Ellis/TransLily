@@ -148,8 +148,8 @@ tmusic = dict(
     ## structure should contain only time sigs, tempos, and repeats    
     structure = dict(
         rwrapper = [r"{\hideNotes ", r"\unHideNotes}"],  
-        rhythm = [r'\time @4/4 1',],
-        pitches = ['r'],
+        rhythm = [r'\time @4/4 1*4/4',],
+        pitches = ['s'],
         metronome = [],
         abbr = "struct",
         labbr = "struct",

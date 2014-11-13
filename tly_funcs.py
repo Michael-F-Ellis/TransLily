@@ -39,9 +39,16 @@ _isnotedur = re.compile(
 ## Matches single pitches or chords in <>'s
 _pitch_or_chord = re.compile(r"<[^<>]+>|\S+")
 
-## Pttern for full measure rest
+## Pattern for full measure rest
 _fmr = re.compile(r"""
         R         # literal 'R'
+        \d+       # followed by at least 1 digit
+        [0-9.*/]* # followed by 0 or more digits, dots, '*'s, or '/'s
+        """, re.VERBOSE)
+
+## Pattern for full measure spacer rest
+_fms = re.compile(r"""
+        s         # literal 's'
         \d+       # followed by at least 1 digit
         [0-9.*/]* # followed by 0 or more digits, dots, '*'s, or '/'s
         """, re.VERBOSE)
@@ -196,64 +203,167 @@ def structure_merge(srhythm, vrhythm, stripit=False):
     return ' '.join(merged)   
             
 
-def mk_mmr(measure, count):
+def mk_mmr(measure, count, ptn=_fmr):
     """
     >>> mk_mmr('\\time 4/4 R1', 3)
     '\\time 4/4 R1*3'
     """
-    index = _fmr.search(measure).span()[1]
+    index = ptn.search(measure).span()[1]
     return measure[0:index] + '*{}'.format(count) + measure[index:]
     
-def gather_fm_rests(mergelist):
+def classify(bar, ptn, exact=None):
     """
+    >>> classify("a1", _fmr)
+    ('unmatched', None)
+
+    >>> classify(" R1*4/4 ", _fmr)
+    ('begin', 'R1*4/4')
+
+    >>> classify(" R1*4/4 ", _fmr, exact='R1*4/4' )
+    ('append', 'R1*4/4')
+
+    >>> classify(" R1*4/4 \\tempo 4=90", _fmr)
+    ('append_end', None)
+
+    >>> classify(" R1*3/4 ", _fmr, exact='R1*4/4' )
+    ('end_begin', 'R1*3/4')
+
+    >>> classify(" R1*3/4 \\time 4/4 ", _fmr, exact='R1*4/4' )
+    ('end', None)
+
+    """
+    bar = bar.strip()
+    found = ptn.findall(bar)
+    if len(found) != 1:
+        return 'unmatched', None
+
+    else:
+        matched = found[0]
+        start = bar.find(matched)
+        end = start + len(matched)
+
+    if exact is None:
+        if end == len(bar):
+            return 'begin', matched
+        else:
+            if start == 0:
+                return 'append_end', None
+            else:
+                return 'end', None
+
+    elif matched == exact:
+        if start == 0:
+            if end == len(bar):
+                return 'append', exact
+            else:
+                return 'append_end', None
+
+        else:
+            return 'end', None
+
+    else:
+        if end == len(bar):
+            return 'end_begin', matched
+        else:
+            return 'end', None
+
+
+def gather_fm_rests(mergelist, ptn=_fmr):
+    """
+    Combine all possible sequences of full measure rests in mergelists into
+    equivalent multi-measure rests.
+
+    Sequences must begin with a measure that contains exactly one matching rest
+    pattern as its last element.
+
+    Sequences may be extended by measures with exactly one matching rest
+    pattern as a first element.
+
+    Sequencess are ended three possible ways:
+        1. A non-matching measure is found.
+        2. A matching measure with extra elements after the match
+        3. No more measures in the mergelist.
+
+    The element that begins the sequence sets the pattern for the remainder of the sequence. This prevents combining across
+    time signature changes, e.g ['R1', 'R2.']
     >>> gather_fm_rests([r'\\time 4/4 R1', r'R1', r'R1'])
     ['\\\\time 4/4 R1*3']
 
+    >>> gather_fm_rests([r'\\time 4/4 R1', r'R1', r'R1', r'R1*3/4'])
+    ['\\\\time 4/4 R1*3', 'R1*3/4*1']
+
+    >>> gather_fm_rests([r'\\time 4/4 R1', r'R1', r'R1', r'R1*3/4', r'a1'])
+    ['\\\\time 4/4 R1*3', 'R1*3/4*1', 'a1']
+
+    >>> gather_fm_rests([r'\\time 4/4 r1', r'R1', r'R1'])
+    ['\\\\time 4/4 r1', 'R1*2']
+
+    >>> gather_fm_rests([r'\\time 4/4 r1', r's1', r's1'], ptn=_fms)
+    ['\\\\time 4/4 r1', 's1*2']
+
     """
+
+
     result = []
-    gathering = False
+    #gathering = False
     count = 0
-    start = None
-    mergelist.append(r'')
+    startbar = None
+    exact = None
+    #mergelist.append(r'')
     for s in mergelist:
         #print "{}".format(s)
-        match = _fmr.search(s)
+        # match = ptn.search(s)
         #print match
-        if gathering:
-            if match == None:
-                result.append(mk_mmr(start, count))
+        action, exact = classify(s, ptn, exact=exact)
+        #print action, exact, s
+        if action == 'begin':
+            startbar = s
+            count = 1
+        elif action == 'append':
+            count += 1
+        elif action == 'append_end':
+            count += 1
+            result.append(mk_mmr(startbar, count, ptn=ptn))
+            count = 0
+            startbar = None
+        elif action in ('end', 'unmatched'):
+            if startbar is not None:
+                result.append(mk_mmr(startbar, count, ptn=ptn))
+                #print result
+                count = 0
+                startbar = None
+                if action == 'unmatched':
+                    result.append(s)
+            else:
                 result.append(s)
-                gathering = False
-            else:
-                span = match.span()
-                if 0 == span[0] and len(s) == span[1]:
-                    ## it's bare so bump the count and continue
-                    count += 1
-                    #print 'bare'
+        elif action == 'end_begin':
+            result.append(mk_mmr(startbar, count, ptn=ptn))
+            startbar = s
+            count = 1
 
-                else:
-                    ## not bare, so start a new gathering 
-                    ## after saving the current one.
-                    result.append(mk_mmr(start, count))
-                    count = 1
-                    start = s
-                    #print "Not bare"
-                    #print result
-        else:
-            if match == None:
-                result.append(s) # copy with out modification
-            else:
-                ## start mew gathering
-                gathering = True
-                start = s
-                count = 1
-                #print "Starting to gather with {}".format(s)
+    else:
+        ## handle sequences the extend to end mergelist
+        if startbar is not None:
+            result.append(mk_mmr(startbar, count, ptn=ptn))
 
-    return result[0:-1] ## drop the final (empty) element                
+
+    return result                
 
 
 _timesig = re.compile(r"\\time\s+@(\d+/\d+)")
 _partialptn = re.compile(r'partial\s+(\S+)\s+')
+
+def drum_mode_cleanup(drumnotes):
+    """ 
+    Remove key signatures from drumnotes to prevent LilyPond errors.
+    >>> test = r"foo \key d \dorian wbl4\pp"
+    >>> drum_mode_cleanup(test)
+    'foo  wbl4\\\\pp'
+    """
+    ## key signatures look like '\key c \major'.
+    kptn = re.compile(r'\\\key\s+\w+\s+\\\w+') 
+    return re.sub(kptn, '',  drumnotes)
+
 
 def mkticks(metronome, rhythm, meter=None):
     """
@@ -310,12 +420,15 @@ def mkticks(metronome, rhythm, meter=None):
         i, j = match.span()
         return match.string[i:j] + 'r' + match.groups()[0] + ' '
 
+
     try:
         #print rhythm
         #print ticks[meter]
         #print structure_merge(rhythm, ticks[meter], stripit=True)
         smerge = structure_merge(rhythm, ticks[meter], stripit=True)
         patched = re.sub(_partialptn, partialrepl, smerge)
+        patched = drum_mode_cleanup(patched)
+        print patched
         metronome.append(patched)
 
     except KeyError:
@@ -369,7 +482,7 @@ def lilysafe_name(name):
         else:
             return ""
     return ''.join([safechar(c) for c in name])    
-    
+
 
 def mklily(music, fp, voice_order):
     """
@@ -397,12 +510,17 @@ def mklily(music, fp, voice_order):
         vdict = music[voice]
         abbr = lilysafe_name(vdict['labbr'])
         rwrapper = vdict['rwrapper']
-        try:
-            metronome = vdict['metronome']
-            metronome = [] # clear any leftovers from prior compilations.
-            #print "{} has metronome!".format(voice)
-        except KeyError:
+        if voice == 'structure':
+            metronome = []
+        else:
             metronome = None
+
+        #try:
+        #    metronome = vdict['metronome']
+        #    metronome = [] # clear any leftovers from prior compilations.
+        #    #print "{} has metronome!".format(voice)
+        #except KeyError:
+        #    metronome = None
 
         ## Init mergelists
         mergelist = [abbr + 'Music = ' + rwrapper[0]]
@@ -423,8 +541,12 @@ def mklily(music, fp, voice_order):
 
         ## Print merged music to LilyPond file.
         mergelist.append(rwrapper[1])
-        if len(voice_order) == 1:
-            mergelist = gather_fm_rests(mergelist)
+        if voice == 'structure':
+            ptn = _fms
+        else:
+            ptn = _fmr
+
+        mergelist = gather_fm_rests(mergelist, ptn=ptn)
         print >> fp, "\n".join(mergelist)
 
         if music[voice].has_key('lyrics'):
@@ -547,8 +669,8 @@ def get_input(music, voice, bar, insert=False):
                     return
                 else:
                     barlength = "1*"+tsig
-                    if voice == 'structure':
-                        rest = 'r'  #special case
+                    if voice == 'structure':  #special case
+                        rest = 's' 
                     else:
                         rest = 'R'
 
