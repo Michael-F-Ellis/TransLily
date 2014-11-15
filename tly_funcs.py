@@ -429,7 +429,7 @@ def mkticks(metronome, rhythm, meter=None):
         smerge = structure_merge(rhythm, ticks[meter], stripit=True)
         patched = re.sub(_partialptn, partialrepl, smerge)
         patched = drum_mode_cleanup(patched)
-        print patched
+        #print patched
         metronome.append(patched)
 
     except KeyError:
