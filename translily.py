@@ -30,10 +30,13 @@ except ImportError:
     from config import tmusic
 
 import tly_funcs as tf
+import rl_interface as rli
 import re
 
 import cmd
 import cmdhelp
+import intermodular_globals as G
+import readline
 
 ## Process input
 ## Ignore toplevel name conventions: pylint: disable=C0103
@@ -58,29 +61,37 @@ if filepath.startswith(('-h', '--h')):
 
 lilyprog = "lilypond"
 
+readline.clear_history()
 ## extract directory and basename without extension
 filepath = os.path.abspath(filepath)
 dirname, base = os.path.split(filepath)
 sys.path.append(dirname)
 jsonf = JSONFolder(dirname, base)
 
+def onLoad(obj):
+    """ The onload function for jsonf """
+    G.Music = obj
+
+jsonf.onload = onLoad
+
+G.ProjectFolder = filepath
 
 ## Try to load existing work from the json folder.
 ## If no work is found, initialize the music dictionary
 ## from the template in the config file. Let the user
 ## know what's happening in either case.
 try:
-    music = jsonf.load()
+    jsonf.load()
 except ValueError as e:
     print e
     print "Starting from scratch ..."
-    music = tmusic
-    tf.edit_template('_top', 'items', music)
-    jsonf.save(music)
+    G.Music = tmusic
+    tf.edit_template('_top', 'items', G.Music)
+    jsonf.save(G.Music)
 
 else:
     print "Found prior work:"
-    tf.print_barcounts(music)
+    tf.print_barcounts(G.Music)
 
 
 ## Start the usage tracker that accumulates time spent
@@ -100,7 +111,7 @@ class TransLily(cmd.Cmd):
     misc_header = "Topical help (type help <topic>)"
     ruler = None
 
-    def __init__(self, music, dirname, base):
+    def __init__(self, dirname, base):
         cmd.Cmd.__init__(self)
         #self.last_voice = None
 
@@ -113,14 +124,13 @@ class TransLily(cmd.Cmd):
         self.tptn = re.compile(r'^(_top|_bottom)\s+(body|items)$')
         self.vptn = re.compile(r'^(\w+)\s+(\d+)$') 
         self.in_action = False
-        self.music = music
         self.dirname = dirname
         self.base = base
         print dirname, base
 
     def _voice_in_music(self, voice):
-        """ Returns True if voice exists in self.music, False otherwise. """
-        if self.music.has_key(voice):
+        """ Returns True if voice exists in G.Music, False otherwise. """
+        if G.Music.has_key(voice):
             return True
         else:
             print "No voice named {}!".format(voice)
@@ -248,8 +258,8 @@ class TransLily(cmd.Cmd):
         if voice is None: 
             return 
        
-        tf.get_input(self.music, voice, None, insert=True)
-        jsonf.save(self.music)
+        tf.get_input(G.Music, voice, None, insert=True)
+        jsonf.save(G.Music)
 
 
     def help_b(self):
@@ -258,7 +268,7 @@ class TransLily(cmd.Cmd):
 
     def do_b(self, line):
         """b Show bar counts for each voice. """
-        tf.print_barcounts(self.music)
+        tf.print_barcounts(G.Music)
 
 
     def help_c(self):
@@ -272,8 +282,8 @@ class TransLily(cmd.Cmd):
             return
        
         if voice != 'structure':
-            vlen =  len(self.music[voice]['rhythm'])
-            slen =  len(self.music['structure']['rhythm'])
+            vlen =  len(G.Music[voice]['rhythm'])
+            slen =  len(G.Music['structure']['rhythm'])
             if vlen > slen:
                 msg = "Can't compile. 'structure' is shorter than '{}'"
                 print msg.format(voice)
@@ -284,7 +294,7 @@ class TransLily(cmd.Cmd):
         voice_order = ['structure', voice]
         lilyname = os.path.join(self.dirname, self.base, self.base + '_' + voice + '.ly')
         lilyf = file(lilyname, 'w+')
-        tf.mklily(self.music, lilyf, voice_order)
+        tf.mklily(G.Music, lilyf, voice_order)
         lilyf.flush()
         lilyf.close()
         outspec = "-o {}".format(os.path.splitext(lilyname)[0])
@@ -304,13 +314,13 @@ class TransLily(cmd.Cmd):
         except TypeError:
             return
 
-        tf.deletebars(self.music, voice, firstbar, lastbar)
+        tf.deletebars(G.Music, voice, firstbar, lastbar)
         print "deleted {} {} thru {}".format(voice, firstbar, lastbar)
-        if [] == self.music[voice]['rhythm']:
-            self.music.pop(voice)
+        if [] == G.Music[voice]['rhythm']:
+            G.Music.pop(voice)
             print "deleted empty voice {}".format(voice)
 
-        jsonf.save(self.music)
+        jsonf.save(G.Music)
 
         
     def help_e(self):
@@ -324,11 +334,11 @@ class TransLily(cmd.Cmd):
         except TypeError:
             return
 
-        if firstbar > tf.barcount(voice, self.music):
+        if firstbar > tf.barcount(voice, G.Music):
             print "There's no bar {} to edit in {}.".format(firstbar, voice)
             return
 
-        elif lastbar  > tf.barcount(voice, self.music):
+        elif lastbar  > tf.barcount(voice, G.Music):
             print "There's no bar {} to edit in {}.".format(lastbar, voice)
             return
 
@@ -336,10 +346,10 @@ class TransLily(cmd.Cmd):
             pass
 
         for bar in range(firstbar, lastbar + 1):
-            tf.get_input(self.music, voice, bar)
+            tf.get_input(G.Music, voice, bar)
 
             ## Save the input
-            jsonf.save(self.music)
+            jsonf.save(G.Music)
 
     def help_i(self):
         """ Help for 'i' command """
@@ -353,8 +363,8 @@ class TransLily(cmd.Cmd):
         except TypeError:
             return
 
-        tf.insert_rests(self.music, voice, firstbar, lastbar)
-        jsonf.save(self.music)
+        tf.insert_rests(G.Music, voice, firstbar, lastbar)
+        jsonf.save(G.Music)
 
     def help_n(self):
         """ Help for new voice command """
@@ -369,15 +379,15 @@ class TransLily(cmd.Cmd):
             return
 
         voice = args[0]
-        if self.music.has_key(voice):
+        if G.Music.has_key(voice):
             print "Voice {} already exists!".format(voice)
             return
 
         print "Adding voice {}".format(voice)
-        tf.add_voice(voice, self.music, jsonf)
-        tf.get_input(self.music, voice, None)
+        tf.add_voice(voice, G.Music, jsonf)
+        tf.get_input(G.Music, voice, None)
 
-        jsonf.save(self.music)
+        jsonf.save(G.Music)
 
     def help_p(self):
         """ Paste command help """
@@ -390,12 +400,14 @@ class TransLily(cmd.Cmd):
         args = tf.parse_action(self.pptn, line)
         if args is not None:
             sfv, sb, sn, stv, tb = args
+        else:
+            return
 
-        if not self.music.has_key(sfv):
+        if not G.Music.has_key(sfv):
             print "No voice named {}!".format(sfv)
             return
 
-        if not self.music.has_key(stv):
+        if not G.Music.has_key(stv):
             print "No voice named {}!".format(stv)
             return
 
@@ -421,13 +433,13 @@ class TransLily(cmd.Cmd):
             print "First bar must be greater than 0"
             return 
 
-        elif firstbar > tf.barcount(sfv, self.music):
+        elif firstbar > tf.barcount(sfv, G.Music):
             print "There's no bar {} to paste from!".format(firstbar)
             return
-        elif lastbar > tf.barcount(sfv, self.music):
+        elif lastbar > tf.barcount(sfv, G.Music):
             print "There's no bar {} to paste from!".format(lastbar)
             return
-        elif tobar > 1 + tf.barcount(stv, self.music):
+        elif tobar > 1 + tf.barcount(stv, G.Music):
             print "There's no bar {} to paste to!".format(tobar)
             return
         else:
@@ -436,15 +448,14 @@ class TransLily(cmd.Cmd):
 
         for __ in range(firstbar, lastbar + 1):
             for k in ('pitches', 'rhythm', 'lyrics'):
-                if self.music[sfv].has_key(k) and self.music[stv].has_key(k):
+                if G.Music[sfv].has_key(k) and G.Music[stv].has_key(k):
                     i0 = int(firstbar) - 1
                     i1 = lastbar
                     j0 = tobar - 1
                     j1 = j0 + i1 - i0
-                    #self.music[stv][k].extend(self.music[sfv][k][i0:i1])
-                    self.music[stv][k][j0:j1] = self.music[sfv][k][i0:i1]
+                    G.Music[stv][k][j0:j1] = G.Music[sfv][k][i0:i1]
 
-        jsonf.save(self.music)
+        jsonf.save(G.Music)
 
     def help_v(self):
         """ View help """
@@ -459,7 +470,7 @@ class TransLily(cmd.Cmd):
             return
 
         for b in range(firstbar, lastbar + 1):    
-            tf.viewbar(self.music, voice, b)
+            tf.viewbar(G.Music, voice, b)
         
         return
         
@@ -476,13 +487,13 @@ class TransLily(cmd.Cmd):
             print "The only editable template names are '_top' and '_bottom'"
             return
 
-        _ = self.music[name].keys()
+        _ = G.Music[name].keys()
         if which not in _:
             print "{} has no {} to edit".format(name, which)
             return
 
-        if tf.edit_template(name, which, self.music):
-            jsonf.save(self.music)
+        if tf.edit_template(name, which, G.Music):
+            jsonf.save(G.Music)
 
     def help_u(self):
         """ Help for undo """
@@ -490,16 +501,12 @@ class TransLily(cmd.Cmd):
 
     def do_u(self, line):
         """ 'u' undo """
-        undone = jsonf.undo()
-        if undone is not None:
-            self.music = undone
+        jsonf.undo()
 
 
     def do_r(self, line):
         """ 'r' redo i.e. undo last undo. """
-        redone = jsonf.redo()
-        if redone is not None:
-            self.music = redone
+        jsonf.redo()
 
     def precmd(self, line):
         """Tell usage tracker we've started a command. """
@@ -525,7 +532,7 @@ class TransLily(cmd.Cmd):
     #    """ Quit the program via Ctrl-D. """
         return True
 
-TransLily(music, dirname, base).cmdloop()
+TransLily(dirname, base).cmdloop()
 
 
 

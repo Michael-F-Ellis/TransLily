@@ -32,7 +32,7 @@ class JSONFolder(object):
     of a single work in progress.
     """
 
-    def __init__(self, path, workname):
+    def __init__(self, path, workname, onload=None):
         """
         Create a folder named after workname if none exists.  Otherwise use the
         existing one.  Initialize variables needed for saving, retrieving, undo,
@@ -45,6 +45,7 @@ class JSONFolder(object):
         self.current = None
         self.loadindex = None
         self.saveindex = 0
+        self.onload = onload
         try:
             os.makedirs(self.foldername)
         except OSError:
@@ -108,6 +109,7 @@ class JSONFolder(object):
             obj = json.load(jsonf)
             jsonf.close()
             print "Loaded {}".format(self.current)
+            self.onload(obj)  ## No protection. Fail quickly and loudly.
             return obj
         else:
             raise ValueError("No current file!")

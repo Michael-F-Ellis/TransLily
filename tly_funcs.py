@@ -21,6 +21,7 @@ This file is part of TransLily.
 
 import re
 from utils import external_edit
+import rl_interface as rli
 ## Don't complain about importing string module
 ## pylint: disable=W0402
 ## Ignore blacklisted name complaints: pylint: disable=C0102
@@ -569,44 +570,6 @@ def mklily(music, fp, voice_order):
 
     print >> fp, bottom
 
-import readline
-def rlinput(prompt, prefill='', oneline=False):
-    """
-    Get user input with readline editing support.
-    """
-    sentinel = ''
-    if prefill is None:
-        prefill = ''
-    
-    def only_once(text):
-        """ generator for startup hook """
-        readline.insert_text(text)
-        yield
-        while True:
-            yield
-
-    nhist0 = readline.get_current_history_length()
-    gen = only_once(prefill)
-    readline.set_startup_hook(gen.next)
-    try:
-        if oneline:
-            edited = raw_input(prompt)
-        else:
-            print prompt
-            edited = "\n".join(iter(raw_input, sentinel))
-
-        if edited.endswith(r'%%'):
-            ## Invoke external editor
-            edited = external_edit(edited[0:-2])
-        return edited
-    finally:
-        nhist1 = readline.get_current_history_length()
-        #print nhist0, nhist1
-        for i in reversed(range(nhist0, nhist1)):
-            #print "removing {}".format(1)
-            readline.remove_history_item(i)
-
-        readline.set_startup_hook()
 
 # ignore pylint warnings about too many branches and statements
 # pylint: disable = R0912, R0915
@@ -658,7 +621,7 @@ def get_input(music, voice, bar, insert=False):
         #print prompt
         if insert:
             #pitches = '\n'.join(iter(raw_input, sentinel))
-            pitches = rlinput(prompt, sentinel)
+            pitches = rli.rlinput(prompt, sentinel, ctxkey='pitches')
             if pitches == sentinel:
                 ## Interpret empty string to mean user wants a full bar rest
                 ## and no lyrics.
@@ -691,7 +654,7 @@ def get_input(music, voice, bar, insert=False):
         else:
             #prefill = music[voice]['pitches'][ibar]
             prefill = vpitches[ibar]
-            pitches  = rlinput(prompt, prefill)
+            pitches  = rli.rlinput(prompt, prefill, ctxkey='pitches')
             vpitches[ibar]  = pitches
             #music[voice]['pitches'][ibar] = pitches
             
@@ -704,13 +667,13 @@ def get_input(music, voice, bar, insert=False):
         #print prompt
         if insert:
             #rhythm = '\n'.join(iter(raw_input, sentinel))
-            rhythm = rlinput(prompt, sentinel)
+            rhythm = rli.rlinput(prompt, sentinel, ctxkey='rhythm')
             vrhythm[ibar] = rhythm
             #music[voice]['rhythm'].append(rhythm)
         else:
             #prefill = music[voice]['rhythm'][ibar]
             prefill = vrhythm[ibar]
-            rhythm  = rlinput(prompt, prefill)
+            rhythm  = rli.rlinput(prompt, prefill, ctxkey='rhythm')
             vrhythm[ibar] = rhythm
             #music[voice]['rhythm'][ibar] = rhythm
             
@@ -726,13 +689,13 @@ def get_input(music, voice, bar, insert=False):
     #print prompt
     if insert:
         #lyrics = '\n'.join(iter(raw_input, sentinel))
-        lyrics = rlinput(prompt, sentinel)
+        lyrics = rli.rlinput(prompt, sentinel, ctxkey='lyrics')
         vlyrics[ibar] = lyrics
         #music[voice]['lyrics'].append(lyrics)
     else:
         #prefill = music[voice]['lyrics'][ibar]
         prefill = vlyrics[ibar]
-        lyrics  = rlinput(prompt, prefill)
+        lyrics  = rli.rlinput(prompt, prefill, ctxkey='lyrics')
         vlyrics[ibar] = lyrics
         #music[voice]['lyrics'][ibar] = lyrics
 
@@ -761,7 +724,8 @@ def add_voice(voice, music, jsonfp):
         props = "name abbr rel clef has_lyrics".split(' ')
         defaults = ('Bass I', 'B1', 'c', 'bass', 'y')
         for k, dflt in zip(props, defaults) :
-            _[k] = rlinput("{} :".format(k), dflt, oneline=True)
+            _[k] = rli.rlinput("{} :".format(k), dflt, 
+                               oneline=True, ctxkey='_top')
 
         if _['has_lyrics'].startswith('y'):
             _['has_lyrics'] = True
@@ -789,7 +753,8 @@ def edit_template(name, which, music):
     elif which == 'items':
         itemd = music[name][which]
         for k, v in itemd.iteritems():
-            itemd[k] = rlinput("{} :".format(k), v, oneline=True)
+            itemd[k] = rli.rlinput("{} :".format(k), v, 
+                                   oneline=True, ctxkey=name)
             
         return True
 
