@@ -4,7 +4,7 @@ Release:
 
 0.1.0  Initial Release  (done)
 
-0.2.0  Context-sensitive readline history.  Command line support for user-supplied config file.
+0.2.0  Context-sensitive readline history and completion.
 
 0.3.0  Simple pre-compile checking to verify that the same number of durations and pitches are specified in each bar.
 
