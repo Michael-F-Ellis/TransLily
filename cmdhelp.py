@@ -660,7 +660,8 @@ LilyPond notation.
     print
     for key in """
         license introduction usage vital autosave commands
-        append barcounts compile delete edit insert new paste quit redo template undo view
+        append barcounts compile delete edit insert new 
+        paste play quit redo template undo view
         """.split():
         print HELP[key]
     
