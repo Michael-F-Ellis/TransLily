@@ -453,6 +453,13 @@ saves the result.
 
 """,
 
+play = r"""
+The 'play voice' command will play the most recently compiled midi file for the
+specified voice. The play command uses whatever midi player application is
+currently mapped to the '.midi' file type. This command is currently supported
+only for Apple Mac OS X.
+""",
+
 quit = r"""
 QUIT
 The 'q' (quit) command exits TransLily. It is synonymous with 'EOF' and Ctrl-D.

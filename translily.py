@@ -281,7 +281,10 @@ class TransLily(cmd.Cmd):
         if voice is None:
             return
        
-        if voice != 'structure':
+        if voice == 'structure':
+            print "Compiling Structure by itself is not currently supported."
+            return
+        else:    
             vlen =  len(G.Music[voice]['rhythm'])
             slen =  len(G.Music['structure']['rhythm'])
             if vlen > slen:
@@ -297,9 +300,12 @@ class TransLily(cmd.Cmd):
         tf.mklily(G.Music, lilyf, voice_order)
         lilyf.flush()
         lilyf.close()
-        outspec = "-o {}".format(os.path.splitext(lilyname)[0])
+        outbase = os.path.splitext(lilyname)[0] 
+        outspec = "-o {}".format(outbase)
         print outspec
         os.system('{} {} {}'.format(lilyprog, outspec, lilyname ))
+        if sys.platform == 'darwin':
+            os.system("open {}".format(outbase + ".pdf"))
         return
 
     def help_d(self):
@@ -456,6 +462,26 @@ class TransLily(cmd.Cmd):
                     G.Music[stv][k][j0:j1] = G.Music[sfv][k][i0:i1]
 
         jsonf.save(G.Music)
+
+    def help_play(self):
+        """ Compile command help """
+        print cmdhelp.HELP['play']
+
+    def do_play(self, line):
+        """ 'play voice' to play with external midi player """
+        voice = self._validate_voice(line)
+        if voice is None:
+            return
+       
+        if voice == 'structure':
+            print "Structure is not a playable voice"
+            return
+
+        midiname = os.path.join(self.dirname, self.base, self.base + 
+                                '_' + voice + '.midi')
+        if sys.platform == 'darwin':
+            os.system("open {}".format(midiname))
+        return  
 
     def help_v(self):
         """ View help """

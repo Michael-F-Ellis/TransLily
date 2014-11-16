@@ -837,7 +837,7 @@ def insert_rests(music, voice, firstbar, lastbar):
     else:
         barlength = "1*"+tsig
         if voice == 'structure':
-            rest = 'r'  #special case
+            rest = 's'  #special case
         else:
             rest = 'R' 
 

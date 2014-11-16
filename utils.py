@@ -63,7 +63,7 @@ def external_edit(initial=""):
     
     return "".join(result)
 
-def uniq(seq):
+def uniq(seq, stripit=True):
     """ 
     Return a unique list from seq with elements ordereed by first appearance
     >>> uniq(['z', 'c', 'z', 'a'])
@@ -72,6 +72,7 @@ def uniq(seq):
     >>> uniq([])
     []
     """
+    seq = [s.strip() for s in seq] if stripit == True else seq
     seqset = set(seq)
     ordered = []
     for k in seq:
@@ -84,7 +85,7 @@ def uniq(seq):
 
     return ordered
 
-def uniqify(filename):
+def uniqify(filename, final_newline=True):
     """ 
     Apply uniq() in place to file. 
     Raises IOError if file does not exist.
@@ -94,8 +95,11 @@ def uniqify(filename):
         ulines = uniq(f.readlines())
     
     with file(filename, 'w') as f:
-        print >> f, "".join(ulines) ,
-
+        print >> f, "\n".join(ulines) ,
+        if final_newline:
+            print >> f
+        
+    return ulines
 
 if __name__ == '__main__':
     from doctest import testmod
