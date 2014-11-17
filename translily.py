@@ -75,6 +75,8 @@ def onLoad(obj):
 jsonf.onload = onLoad
 
 G.ProjectFolder = filepath
+G.SessionLogfile = "session.log"
+G.debug("Initializing ...")
 
 ## Try to load existing work from the json folder.
 ## If no work is found, initialize the music dictionary

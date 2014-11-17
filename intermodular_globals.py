@@ -18,7 +18,8 @@ This file is part of TransLily.
     You should have received a copy of the GNU General Public License
     along with TransLily.  If not, see <http://www.gnu.org/licenses/>.   
 """                                                                   
-
+import os
+import sys
 ## The dictionary where we store the present state of the notation.
 
 Music = None
@@ -27,4 +28,19 @@ Music = None
 
 ProjectFolder = None
 
+SessionLogfile = None
 
+## Intentional use of [] as kwarg initializer. pylint: disable=W0102
+def debug(msg, _cache=[None]):
+    """ Writes msg to SessionLogfile or stderr """
+    if SessionLogfile is not None:
+        if _cache[0] in (None, sys.stderr):
+            _cache[0] = file(os.path.join(ProjectFolder, SessionLogfile), 'w+')
+    else:
+        if _cache[0] is None:
+            _cache[0] = sys.stderr
+
+    print >> _cache[0], msg
+    ## Flush and sync so we can use 'tail -f' to watch output in real time.
+    _cache[0].flush()
+    os.fsync(_cache[0].fileno())

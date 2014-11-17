@@ -63,6 +63,7 @@ def rlinput(prompt, prefill='', oneline=False, ctxkey=''):
     readline.parse_and_bind('tab: complete')
     saveddelims = readline.get_completer_delims()
     readline.set_completer_delims('') ## No delims. Complete entire lines.
+    readline.set_completion_display_matches_hook(match_display_hook)
     gen = only_once(prefill)
     readline.set_startup_hook(gen.next)
     try:
@@ -86,9 +87,20 @@ def rlinput(prompt, prefill='', oneline=False, ctxkey=''):
         readline.set_completer_delims(saveddelims)
         readline.set_startup_hook()    
 
+def match_display_hook(substitution, matches, longest_match_length):
+    ## Unused args are ok. pylint: disable=W0613
+    """ Cleaner display for line completion """
+    print '\n--- possible matches ---'
+    for match in matches:
+        print match
+    #print self.prompt.rstrip(),
+    print '------------------------'
+    print readline.get_line_buffer(),
+    readline.redisplay()
+
+class HistoryCompleter(object):
 ## Suppress complaint about 'too few public methods'
 ## pylint: disable=R0903
-class HistoryCompleter(object):
     """ 
     Adapted and simplified from http://pymotw.com/2/readline/ 
     """
@@ -99,7 +111,12 @@ class HistoryCompleter(object):
 
     def complete(self, text, state):
         """ Completion method for readline """
+        def dbg(msg):
+            """ localized debug() """
+            G.debug("complete :" + msg)
+
         response = None
+        dbg("Text {}, state {}".format(text, state))
         if state == 0:
             if len(text) > 0:
                 self.matches = sorted(h 
@@ -111,6 +128,7 @@ class HistoryCompleter(object):
             response = self.matches[state]
         except IndexError:
             response = None
+        dbg('response {}'.format(response))    
         return response
 
 
