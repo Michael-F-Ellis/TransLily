@@ -224,7 +224,7 @@ To work successfully with TransLily, you *really* need to understand the followi
 
     The metronome voice is a percussion voice. You must use valid LilyPond
     percussion insrtument names in the 'pitches' line instead of pitch names.
-    The default patterns use 'wbl' (High Wood Block) and 'wbl' (Low Wood
+    The default patterns use 'wbh' (High Wood Block) and 'wbl' (Low Wood
     Block), but if you may specify other percussion instruments according to
     your preferences. 
     
