@@ -251,6 +251,10 @@ class TransLily(cmd.Cmd):
         """ Vital information topic """
         print cmdhelp.HELP['vital']
 
+    def help_shortcuts(self):
+        """ Tips and shortcuts information topic """
+        print cmdhelp.HELP['shortcuts']
+
     def help_a(self):
         """ Help for the 'a' cmd."""
         print cmdhelp.HELP['append']

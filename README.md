@@ -109,6 +109,49 @@ TransLily's help pages are always available by typing 'help' at any command prom
 
 
 
+TIPS AND SHORTCUTS:
+
+    1. You can enter LilyPond code for pitches/rhythms/lyrics on multiple
+       lines, but this is rarely needed. Entering a blank line terminates the
+       input and moves to the prompt for the next item.
+
+    2. Hitting Return at a (Cmd) prompt will re-execute the last command. This
+       provides a convenient workflow for appending a series of measures to a
+       voice without having to retype the 'a voice' command.
+
+    3. Entering a blank line (or a line ending with 'm') at the pitches prompt
+       (i.e. no pitches) is a shortcut for inserting a full measure rest and no
+       lyrics.  You can use this feature to rapidly enter a series of rest
+       measures by repeatedly hitting Return.
+
+    4. TAB Completion:  Enter the first few characters of a notation line
+       you've previously entered and hit the Tab key.  If only one entry
+       matches, Translily will complete the line for you. If more than entry
+       matches, TransLily will show you a list of possible matches. Enter more
+       characters and hit Tab again to reduce the list.  This can be a huge
+       timesaver for complicated rhythmic expressions that appear multiple
+       times in a composition.
+
+    5. History:  Use the up/down arrow keys to scroll through recent entries. 
+       Very useful for entering measures with the same pitches, rhythms, or
+       words as prior measures. History and Tab Completion are both
+       context-sensitive, i.e. you'll only see pitches at the "pitches' prompt,
+       rhythms at the 'rhythms' prompt, and so on.
+
+Advanced usage:
+
+    These are features of interest to shell wizards. They're not necessary for
+    normal usage.
+
+    1. The command processor uses readline by default and will inherit whatever
+       keymaps you've defined in your .inputrc file.
+    2. If your $EDITOR environment variables is set to a suitable non-forking
+       text editor, you can escape to the editor when entering pitches,
+       rhythms, or lyrics by typing '%%' at the end of an input line. This is
+       an alternative to using whatever keymap you'd normally use for this
+       purpose as Python doesn't support this correctly on all platforms.
+
+
 VITAL INFORMATION
 To work successfully with TransLily, you *really* need to understand the following:
 
@@ -119,7 +162,7 @@ To work successfully with TransLily, you *really* need to understand the followi
         \tempo @2=96
 
     Why: At compile time, TransLily needs to match pitches with their
-    respective durations. The '@ hack' allows TransLily to distinguish which
+    respective durations. The '@' hack allows TransLily to distinguish which
     tokens that start with numbers are really durations and which are arguments
     to LilyPond functions without having to maintain a detailed representation
     of the syntax for all LilyPond functions.  There are many, many more note
@@ -149,8 +192,8 @@ To work successfully with TransLily, you *really* need to understand the followi
     TransLily includes a special voice named 'structure' in every project.
     Structure is the place to enter tempos, time signatures, rehearsal marks,
     and volta repeats, ... i.e. things that are common to all voices.
-    Otherwise, structure consist full measure rests.  Structure acts as a sort
-    of template for all the voices.
+    Otherwise, structure consist full measure spacer rests.  Structure acts as
+    a sort of template for all the voices.
 
     The main reason for keeping structural items in a separate voice is to
     facilitate pasting notation across voices.  The paste command allows you to
@@ -159,12 +202,33 @@ To work successfully with TransLily, you *really* need to understand the followi
     reduces the chance of creating a conflict between voices that LilyPond
     can't resolve.
 
-    Structure is also used to create the metronome clicks in the midi files.
-    This gives rise to a limitation that may be removed in a future version of
-    TransLily:  at present structure should NOT contain \key directives because
-    key declarations are not compatible with \drum mode.
+4.  MIDI output: 
+    Translily automatically produces a MIDI file when you compile a voice.
+    These files are useful for 'proof-listening' and/or as plunk tracks for
+    learning parts. A difficulty arises when your transcription requires use of
+    the LilyPond '\repeat volta' construct to produce repeats in the music.
+    Due to a LilyPond limitation, your score will be displayed correctly, but
+    the repeats will not be executed in the MIDI file unless you transcribe the
+    '\repeat volta' syntax from the 'structure' voice into each voice and into
+    the metronome voice as well (if it exists).
 
-4. Watch out for auto-repeat!
+5.  Metronome: You may optionally create a voice named 'metronome' to produce a
+    click-track in the midi output. Just do 'n metronome' to get started.
+    TransLily defines patterns for most common time signatures.  You can
+    automatically insert these patterns in the metronome entering a blank line
+    when prompted for 'pitches' during appending or editing operations. This
+    differs from the editing behavior in other voices where blank pitch lines
+    create a full measure rest in the current time signature.  Otherwise, all
+    editing commands work the same with the metronome voice as with any other
+    voice.
+
+    The metronome voice is a percussion voice. You must use valid LilyPond
+    percussion insrtument names in the 'pitches' line instead of pitch names.
+    The default patterns use 'wbl' (High Wood Block) and 'wbl' (Low Wood
+    Block), but if you may specify other percussion instruments according to
+    your preferences. 
+    
+6. Watch out for auto-repeats when editing!: 
     The Python Cmd module includes, by default, a handler that automatically
     repeats the previous command when you enter a blank line at a (Cmd) prompt.
     This is very handy for things like appending several bars of rests, but can
@@ -254,33 +318,6 @@ After  the program printed 'Saved 4.json' to let us
 know that the score had been saved with the new empty voice added. 
 
 
-Tips and Shortcuts:
-    1. You can enter LilyPond code for pitches/rhythms/lyrics on multiple
-       lines, but this is rarely needed. Entering a blank line terminates the
-       input and moves to the prompt for the next item.
-
-    2. Hitting Return at a (Cmd) prompt will re-execute the last command. This
-       provides a convenient workflow for appending a series of measures to a
-       voice without having to retype the 'a voice' command.
-
-    3. Entering a blank line at the pitches prompt (i.e. no pitches) is a
-       shortcut for inserting a full measure rest and no lyrics.  You can use
-       this feature to rapidly enter a series of rest measures by repeatedly
-       hitting Return.
-
-Advanced usage:
-    These are features of interest to shell wizards. They're not necessary for
-    normal usage.
-
-    1. The command processor uses readline by default and will inherit whatever
-       keymaps you've defined in your .inputrc file.
-    2. If your $EDITOR environment variables is set to a suitable non-forking
-       text editor, you can escape to the editor when entering pitches,
-       rhythms, or lyrics by typing '%%' at the end of an input line. This is
-       an alternative to using whatever keymap you'd normally use for this
-       purpose as Python doesn't support this correctly on all platforms.
-
-
 BARCOUNTS
 The 'b' (barcount) command prints a list of all voices in the project and
 the number of measures contained in each, e.g.
@@ -337,6 +374,10 @@ following:
 
 Unsuccessful compilations will contain LilyPond error messages that can be used
 to find where the music entry went wrong.
+
+At the end of compilation, TransLily will open your .pdf file for viewing in
+whatever application is assigned to the '.pdf' extension.  This feature is
+currently enabled only for Apple OS X.
 
 
 
