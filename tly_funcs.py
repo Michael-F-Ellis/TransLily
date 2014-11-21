@@ -178,7 +178,6 @@ def get_input(music, voice, bar, insert=False):
             else:
                 pitches = 'R'
                 rhythm = "1*"+tsig
-                print msg.format(rhythm)
 
             vpitches[ibar] = pitches
             vrhythm[ibar] = rhythm
