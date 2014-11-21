@@ -406,6 +406,8 @@ class TransLily(cmd.Cmd):
         if args is not None:
             sfv, sb, sn, stv, tb = args
         else:
+            msg = "Can't interpret '{}' as 'fromvoice firsbar lastbar tovoice startbar'"
+            print msg.format(line)
             return
 
         if not G.Music.has_key(sfv):
