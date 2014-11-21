@@ -101,12 +101,12 @@ _bottomtemplate = r"""
           } <<
         \clef "$clef"
         \new Voice = "${labbr}" { \voiceOne \global \vglobal \${labbr}Music }
-        \new Voice = "structure" { \voiceTwo \global \vglobal \structMusic }
+        \new Voice = "structure" { \voiceTwo \global \vglobal \structure }
       >>
-      \new Lyrics = "${labbr}"
-      
-
-    \context Lyrics = "${labbr}" \lyricsto "${labbr}" \${labbr}Words
+     %% TransLily prepends '% ' to comment out the lines
+     %% below if the voice has no lyrics
+         $iflyrics \new Lyrics = "${labbr}"
+         $iflyrics \context Lyrics = "${labbr}" \lyricsto "${labbr}" \${labbr}Words
 
 
 
@@ -123,7 +123,7 @@ _bottomtemplate = r"""
 \include "articulate.ly"
 
 \score {
-    \unfoldRepeats \articulate { <<  \${labbr}Midi  \\ \structureTicks >>  }
+    \unfoldRepeats \articulate { <<  \${labbr}Music  \\ \structure \\ \metronome >>  }
     
     \midi {
         % voodoo that lets us specify instrument in melody
@@ -174,5 +174,67 @@ tmusic = dict(
     )
 
     
+## Dictionary of metronome tick patterns for various meters
+
+TickDict = { 
+    # allow long lines. pylint: disable = C0301    
+    '2/2': {   'pitches': 'wbh wbl wbl wbl',
+               'rhythm': r'4\fff 4\ppp 4\ff 4\ppp'},
+
+    '2/4': {   'pitches': 'wbh wbl', 
+               'rhythm': r'4\fff 4\ppp'},
+    
+    '3/2': {   'pitches': 'wbh wbl wbl', 
+               'rhythm': r'2\fff 2\ppp 2'},
+    
+    '3/4': {   'pitches': 'wbh wbl wbl', 
+               'rhythm': r'4\fff 4\ppp 4'},
+    
+    '3/8': {   'pitches': 'wbh wbl wbl', 
+               'rhythm': r'8\fff 8 8'},
+    
+    '4/4': {   'pitches': 'wbh wbl wbl wbl', 
+               'rhythm': r'4\fff 4\ppp 4 4'},
+    
+    '5/2': {   'pitches': 'wbh wbl wbl wbl wbl',
+               'rhythm': r'2\fff 2\ppp 2\ff 2\ppp 2'},
+    
+    '5/4': {   'pitches': 'wbh wbl wbl wbl wbl', 
+               'rhythm': r'4\fff 4\ppp 4 4 4'},
+    
+    '5/8': {   'pitches': 'wbh wbl wbl wbl wbl', 
+               'rhythm': r'8\fff 8 8 8\fff 8'},
+    
+    '6/4': {   'pitches': 'wbh wbl wbl wbl wbl wbl',
+               'rhythm': r'4\fff 4\ppp 4 4\fff 4\ppp 4'},
+    
+    '6/8': {   'pitches': 'wbh wbl', 
+               'rhythm': r'4.\fff 4.\fff'},
+    
+    '7/4': {   'pitches': 'wbh wbl wbl wbl wbl wbl wbl',
+               'rhythm': r'4\fff 4\ppp 4 4 4\fff 4\ppp 4'},
+    
+    '8/8': {   'pitches': 'wbh wbl wbl', 
+               'rhythm': r'4.\fff 4.\fff 4\fff'},
+    
+    '9/2': {   'pitches': 'wbh wbl wbl wbl wbl wbl wbl wbl wbl',
+               'rhythm': r'2\fff 2\ppp 2 2\fff 2\ppp 2 2\fff 2\ppp 2'},
+    
+    '9/8': {   'pitches': 'wbh wbl wbl', 
+               'rhythm': r'4.\fff 4.\fff 4.\fff'},
+
+    '10/4': {   'pitches': 'wbh wbl wbl wbl wbl wbh wbl wbl wbl wbl',
+                'rhythm': r'4\fff 4\ppp 4\fff 4\ppp 4 4\f 4\ppp 4\fff 4\ppp 4'},
+
+    '10/8': {   'pitches': 'wbh wbl wbl wbl',
+                'rhythm': r'4.\fff 4.\fff 4.\fff 4\fff'},
+
+    '12/2': {   'pitches': 'wbh wbl wbl wbl wbl wbl wbl wbl wbl wbl wbl wbl',
+                'rhythm': r'2\fff 2\ppp 2 2\fff 2\ppp 2 2\fff 2\ppp 2 2\fff 2\ppp 2'},
+
+    '12/8': {   'pitches': 'wbh wbl wbl wbl',
+                'rhythm': r'4.\fff 4.\fff 4.\fff 4.\fff'},
+
+    }
 
 

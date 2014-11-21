@@ -101,6 +101,27 @@ def uniqify(filename, final_newline=True):
         
     return ulines
 
+
+def lilysafe_name(name):
+    """
+    Create a valid variable name for use in LilyPond files.
+    Convert numbers to strings and remove other non-alpha chars.
+    >>> lilysafe_name('Bass 1')
+    'BassOne'
+    """
+    numnames = "Zero One Two Three Four Five Six Seven Eight Nine".split(' ') 
+    # Don't complain about string module. pylint: disable=W0402
+    from string import letters, digits
+    def safechar(c):
+        """ Convert one char to a safe string """
+        if c in letters:
+            return str(c)
+        elif c in digits:
+            return numnames[int(c)]
+        else:
+            return ""
+    return ''.join([safechar(c) for c in name])    
+
 if __name__ == '__main__':
     from doctest import testmod
     testmod()

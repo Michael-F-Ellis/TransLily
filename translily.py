@@ -30,6 +30,7 @@ except ImportError:
     from config import tmusic
 
 import tly_funcs as tf
+import lilyfile as lf
 import rl_interface as rli
 import re
 
@@ -283,23 +284,19 @@ class TransLily(cmd.Cmd):
         if voice is None:
             return
        
-        if voice == 'structure':
-            print "Compiling Structure by itself is not currently supported."
+        vlen =  len(G.Music[voice]['rhythm'])
+        slen =  len(G.Music['structure']['rhythm'])
+        if vlen > slen:
+            msg = "Can't compile. 'structure' is shorter than '{}'"
+            print msg.format(voice)
             return
-        else:    
-            vlen =  len(G.Music[voice]['rhythm'])
-            slen =  len(G.Music['structure']['rhythm'])
-            if vlen > slen:
-                msg = "Can't compile. 'structure' is shorter than '{}'"
-                print msg.format(voice)
-                return
 
         ## open an output file with .ly extension in write mode
         ## in the project folder
-        voice_order = ['structure', voice]
-        lilyname = os.path.join(self.dirname, self.base, self.base + '_' + voice + '.ly')
+        lilyname = os.path.join(self.dirname, self.base, 
+                                self.base + '_' + voice + '.ly')
         lilyf = file(lilyname, 'w+')
-        tf.mklily(G.Music, lilyf, voice_order)
+        lf.mklily(G.Music, lilyf, voice)
         lilyf.flush()
         lilyf.close()
         outbase = os.path.splitext(lilyname)[0] 
