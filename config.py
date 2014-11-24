@@ -2,6 +2,21 @@
 """
 Default configuration file for TransLily
 
+This file consists mostly of templates used by the TransLily 'compile' command
+to generate a LilyPond file.  
+
+The templates are enclosed in Python triple-quotes. They specify various
+LilyPond settings that are appropriate for single line part transcriptions. 
+
+LilyPond offers a huge variety of typesetting options. If some of your
+preferences are different, you can make a copy of this file, edit it, and save
+it as '_config.py'. 
+
+When TransLily starts, it uses '_config.py' if it exists before defaulting to
+'config.py.'
+
+
+
 Copyright 2014 Ellis & Grant, Inc. 
 
 This file is part of TransLily.
@@ -21,14 +36,33 @@ This file is part of TransLily.
 """    
 
 
+## The _top template appears at the top of the LilyPond file. It controls aspects
+## such as paper size, margins. Information about the title, composer, etc is also
+## substitued into the template when the output file is generated.  Look for the
+## items that begin with '$' signs. If you define any new ones, you must add a
+## corresponding item to the 'tmusic' template at the bottom of this file.
+
 #pylint: disable=W0402
 _toptemplate = r"""
+%{
+    THIS FILE WAS GENERATED AUTOMATICALLY BY TransLily.  A new version
+    overwrites the old one each time you compile from TransLily. 
+    
+    Please use a COPY of this file if you want to edit it and keep your
+    changes.
+%}
+
+% LilyPond requires a version statement,
 \version "2.18.2"
+
+% Makes compilation somewhat faster.
 \pointAndClickOff
 
+% Import convenience functions provided with TransLily
 \include "transcription_helpers.ly"
 
 \paper {
+  % Typical margin settings  
   top-system-spacing #'basic-distance = #10
   score-system-spacing #'basic-distance = #20
   system-system-spacing #'basic-distance = #20
@@ -60,121 +94,90 @@ _toptemplate = r"""
 }
 
 global = {
-
+  % Some useful settings for single voice parts
 
   % Next 2 lines, if uncommented, alter the default beaming in 3/4 time.
-  %\set Timing.beamExceptions = #'()
-  %\set Voice.beatStructure = #'(1 1 1) 
+  \set Timing.beamExceptions = #'()
+  \set Voice.beatStructure = #'(1 1 1) 
 
-  \override BreathingSign #'Y-offset = #3  
-  \override MultiMeasureRest #'staff-position = #0   
-  \compressFullBarRests     
+  % Place breath marks a little higher than the default.
+  \override BreathingSign #'Y-offset = #3
+
+  % Vertically center multi-measure rest symbols.
+  \override MultiMeasureRest #'staff-position = #0
+
+  % Tell LilyPond not to expand multi-measure rests.
+  \compressFullBarRests
+
+  % Vertically center all rest symbols
+  \override Rest #'staff-position = #0
+
+  % Suppress Kirchenpausen rests.
+  \override MultiMeasureRest.expand-limit = #1
+
+  % Number each bar for easier proofing.
+  \override Score.BarNumber.break-visibility = ##(#f #t #t)
 } 
-vglobal = {
-    % Initial settings for choral voices
-    \slurDown
-    \override Rest #'staff-position = #0
-}
-
 
 """
 
-
-
-
-
-
-##
-## This section is emitted verbatim and must be valid Lilypond input.
-## Gnerally speaking, you should not need to edit this.
-##
+## The _bottom template contains the \score block that tells LilyPond how to
+## create the PDF and MIDI files.  It also contains '$' sign items that are
+## substitued by LilyPond. You shouldn't change or add to these.
 
 _bottomtemplate = r"""
 
 \score {
+  %% PDF Creation
   <<
-     \set Score.markFormatter = #format-mark-box-numbers
-      
       \new Staff = "${labbr}" \with {
           instrumentName = #"${name} "
           shortInstrumentName = #"${abbr} " 
           } <<
         \clef "$clef"
-        \new Voice = "${labbr}" { \voiceOne \global \vglobal \${labbr}Music }
-        \new Voice = "structure" { \voiceTwo \global \vglobal \structure }
+        \new Voice = "${labbr}" { \global \${labbr}Music }
+        \new Voice = "structure" { \global \structure }
       >>
+
      %% TransLily prepends '% ' to comment out the lines
      %% below if the voice has no lyrics
          $iflyrics \new Lyrics = "${labbr}"
          $iflyrics \context Lyrics = "${labbr}" \lyricsto "${labbr}" \${labbr}Words
-
-
-
   >>
 
-  \layout {
-  \context {
-    %\Staff \RemoveEmptyStaves
-    \override VerticalAxisGroup.remove-first = ##t
-    }
+  \layout { }
   }
-}
 
-\include "articulate.ly"
+  %% MIDI Creation
 
-\score {
-    \unfoldRepeats \articulate { <<  \${labbr}Music  \\ \structure \\ \metronome >>  }
-    
-    \midi {
-        % voodoo that lets us specify instrument in melody
-        \context {
-            \Staff
-            \remove "Staff_performer"
-        }
-        \context {
-            \Voice
-            \consists "Staff_performer" 
-        }
-    }
-}    
+  % The 'articulate' module included with LilyPond adjusts the midi
+  % output for increased musicality.
+  
+  \include "articulate.ly"
+  
+  \score {
+      \unfoldRepeats \articulate { <<  \${labbr}Music  \\ \structure \\ \metronome >>  }
+      
+      \midi {
+          % The following lets us specify the instrument in the melody
+          % instead of at the staff level. This allows playing cue notes
+          % with a different midi instrument than the main voice.
+          \context {
+              \Staff
+              \remove "Staff_performer"
+          }
+          \context {
+              \Voice
+              \consists "Staff_performer" 
+          }
+      }
+  }    
 """
 
-
-##
-## This section is merged
-##
-## allow 'music' as a toplevel name pylint: disable=C0103
-tmusic = dict(
-    ## structure should contain only time sigs, tempos, and repeats    
-    structure = dict(
-        rwrapper = [r"{\hideNotes ", r"\unHideNotes}"],  
-        rhythm = [r'\time @4/4 1*4/4',],
-        pitches = ['s'],
-        name = "Structure",
-        clef = "treble",
-        abbr = "struct",
-        labbr = "struct",
-        ),
-
-    _top = dict(
-        body = _toptemplate,
-        items = dict(
-            title="Excellent Title",
-            poet="Famous Poet",
-            composer="Famous Composer",
-            transcriber="Your Name Here",)
-        ),
-
-    _bottom = dict(
-        body = _bottomtemplate,
-        #items = dict()
-        ),
-
-
-    )
-
     
-## Dictionary of metronome tick patterns for various meters
+## TickDict is a python dictionary of metronome tick patterns for common meters.
+## The patterns in this list create loud down beats and soft sub-beats using a
+## 'woodblock' instrument. 
 
 TickDict = { 
     # allow long lines. pylint: disable = C0301    
@@ -238,3 +241,38 @@ TickDict = {
     }
 
 
+## TransLily imports the following dictionary to create new projects. Don't 
+## edit it unless you really, really know what you're doing.
+
+## allow 'tmusic' as a toplevel name pylint: disable=C0103
+tmusic = dict(
+    ## structure should contain only time sigs, tempos, and repeats    
+    structure = dict(
+        rwrapper = [r"{ ", r" }"],  
+        rhythm = [r'\time @4/4 1*4/4',],
+        pitches = ['s'],
+        name = "Structure",
+        clef = "treble",
+        abbr = "struct",
+        labbr = "struct",
+        ),
+
+    _top = dict(
+        body = _toptemplate,
+        items = dict(
+            title="Excellent Title",
+            poet="Famous Poet",
+            composer="Famous Composer",
+            transcriber="Your Name Here",)
+        ),
+
+    _bottom = dict(
+        body = _bottomtemplate,
+        ## No 'items' key for this dictionary
+        #items = dict()
+        ),
+
+    _ticks = TickDict
+
+
+    )
