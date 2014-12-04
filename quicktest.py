@@ -66,22 +66,22 @@ snd('')
 exp("Title")
 snd('')
 
-## Add 'bass1' voice
-snd('n bass1')
-exp('Adding voice bass1')
-exp('name :')
-snd('')
-exp('abbr :')
-snd('')
-exp('rel :')
-snd('')
-exp('clef :')
-snd('')
-exp('lyrics :')
-snd('')
+## Add 'b1' voice
+snd('n b1')
+exp('Adding voice b1')
+exp('name.* :')
+snd('Bass I')
+exp('abbr.* :')
+snd('B1')
+exp('rel.* :')
+snd('c')
+exp('clef.* :')
+snd('bass')
+exp('lyrics.* :')
+snd('y')
 
 ## pitches, rhythm, lyrics for bar 1 of bass1
-exp('bass1 pitches: bar 1')
+exp('pitches: bar 1')
 snd('a b c d')
 snd('')
 exp('bar 1')
@@ -93,10 +93,42 @@ snd('')
 
 ## compile 'bass1'
 exp('(Cmd)')
-snd('c bass1')
+snd('c b1')
 exp('Success:.*(Cmd)')
 
-append(child, 'bass1', 'e f g a', '4 4 4 4', 'la la la la')
+append(child, 'b1', 'e f g a', '4 4 4 4', 'la la la la')
+
+## test insertion
+snd('i structure 2 4')
+exp('(Cmd)')
+snd('i b1 2 3')
+
+## compile 'bass1' again. Should see 2 measure rest in middle
+exp('(Cmd)')
+snd('c b1')
+exp('Success:.*(Cmd)')
+
+## Add s1 voice, paste from b1, then compile
+snd('n s1')
+exp('Adding voice s1')
+exp('name.* :')
+snd('Soprano I')
+exp('abbr.* :')
+snd('S1')
+exp('rel.* :')
+snd("c''")
+exp('clef.* :')
+snd('treble')
+exp('lyrics.* :') 
+snd('y')
+exp('pitches: bar 1')
+snd('')
+exp('(Cmd)')
+
+snd('p b1 1 4 s1 1')
+exp('(Cmd)')
+snd('c s1')
+exp('Success:.*(Cmd)')
 
 child.interact()
 #snd('q')
