@@ -10,7 +10,7 @@ TransLily Documentation (version 0.1)
 All of the following topics are in the online help in the program
 
 
-LICENSE
+LICENSE  
 Copyright 2014 Ellis & Grant, Inc. 
 
 This file is part of TransLily.
@@ -29,7 +29,7 @@ This file is part of TransLily.
     along with TransLily.  If not, see <http://www.gnu.org/licenses/>.   
 
 
-INTRODUCTION
+INTRODUCTION  
 TransLily is a transcription assistant for LilyPond. It's optimized for the
 task of transcribing multiple parts from existing paper scores to produce
 individual part sheets. Transcribing parts can be a laborious process,
@@ -53,7 +53,7 @@ pitches as needed.
 
 
 
-USAGE
+USAGE      
 TransLily is a command-line program written in Python. You need to have
 working installations of Python (2.6 or later) and LilyPond (2.18 or later).
 You should be able to type 'python' at a command line and get the usual Python
@@ -153,6 +153,7 @@ Advanced usage:
 
 
 VITAL INFORMATION
+
 To work successfully with TransLily, you *really* need to understand the following:
 
 1. TransLily notation is pure LilyPond syntax with one exception:
@@ -239,7 +240,7 @@ To work successfully with TransLily, you *really* need to understand the followi
 
 
 
-AUTO SAVE
+AUTO SAVE  
 TransLily automatically saves your work after each successful change to any
 bar.  You can use the 'u' (undo) and 'r' (redo) to walk back and forth in the
 revision history.  When you restart TransLily after quitting a project, the
@@ -275,7 +276,7 @@ COMMAND SUMMARY
 
 
 
-APPEND
+APPEND  
 The 'a voice' (append) command adds one bar of music to the specified voice. If
 the voice doesn't exist, you'll be asked if you want to create it.  Answer
 'y' to create the voice.  In the example below, a new voice is created and the
@@ -318,7 +319,7 @@ After  the program printed 'Saved 4.json' to let us
 know that the score had been saved with the new empty voice added. 
 
 
-BARCOUNTS
+BARCOUNTS  
 The 'b' (barcount) command prints a list of all voices in the project and
 the number of measures contained in each, e.g.
 
@@ -336,7 +337,7 @@ the number of measures contained in each, e.g.
 
 
 
-COMPILE
+COMPILE  
 The 'c voice' (compile) command merges the pitches, rhythms and lyrics from the
 specified voice into a well-formatted LilyPond file. The file is then processed
 by the LilyPond compiler to produce a PDF score and MIDI file containing the
@@ -381,7 +382,7 @@ currently enabled only for Apple OS X.
 
 
 
-DELETE
+DELETE  
 The 'd voice firstbar lastbar' (delete) command removes a range of bars from
 firstbar to lastbar, inclusive, from the specified voice. If the deletion
 removes all bars in the voice, the voice itself is also deleted, as illustrated
@@ -401,7 +402,7 @@ in the example below.
     (Cmd)
 
 
-EDIT
+EDIT  
 The 'e voice firstbar lastbar' (edit) command prompts you to edit the
 pitches/rhythms/lyrics/ in each bar from firstbar to lastbar inclusive.  You
 can keep the current contents of any item by hitting return without making any
@@ -458,7 +459,7 @@ you through the edit all over again!
 
 
 
-INSERT RESTS
+INSERT RESTS  
 The 'i voice firstbar lastbar' inserts new measures in the specified voice and
 fills them with full-measure rests according to the most recent prior time
 signature in 'structure'.  The newly inserted measures become firstbar thru
@@ -469,12 +470,12 @@ example below.
 (Cmd) b
   structure : 1 bars
   bass1 : 2 bars
-(Cmd) i structure 2 10
+(Cmd) i structure 2 3
 Saved 4.json
 (Cmd) b
-  structure : 10 bars
+  structure : 3 bars
   bass1 : 2 bars
-(Cmd) v structure 2
+(Cmd) v structure 1 3
 structure bar 1:
 r
 \time @4/4 1
@@ -489,17 +490,17 @@ r
 
 
 
-NEW
+NEW  
 The 'n voice' (new) command adds a new voice.   In the example below, a new voice is created and the
 first bar of pitches, rhythm, and lyrics are added.
 
     (Cmd) n bass2
     Adding voice bass2
-    name :Bass II
-    abbr :B2
-    rel :c
-    clef :bass
-    has_lyrics :y
+    name (e.g. Bass I) :Bass II
+    abbr (e.g. B1) :B2
+    rel (e.g. c) :c
+    clef (e.g. bass) :bass
+    has_lyrics (y/n) :y
     Saved 3.json
     bass2 added.
     bass2 pitches: bar 1
@@ -543,7 +544,7 @@ command.
 
 
 
-PASTE
+PASTE  
 The  'p fromvoice firstbar lastbar tovoice startbar' (paste) command copies a
 range of bars in 'fromvoice' to a range of bars in 'tovoice'. The range
 'firstbar lastbar' includes both endpoints and both must exist in 'fromvoice'.
@@ -560,22 +561,22 @@ saves the result.
 
 
 
-PLAY
+PLAY  
 The 'play voice' command will play the most recently compiled midi file for the
 specified voice. The play command uses whatever midi player application is
 currently mapped to the '.midi' file type. This command is currently supported
 only for Apple Mac OS X.
 
 
-QUIT
+QUIT  
 The 'q' (quit) command exits TransLily. It is synonymous with 'EOF' and Ctrl-D.
 
 
-REDO
+REDO  
 The 'r' (redo) command undoes the previous 'undo', if any.
 
 
-TEMPLATE
+TEMPLATE  
 (ADVANCED) The 't _top|_bottom  body|items' (template) command allows you to
 edit either of the templates, _top or _bottom, that TransLily emits during
 compilation as part of the .ly file that goes to the LilyPond compiler. 
@@ -626,14 +627,14 @@ tries to import '_config.py' before falling back to 'config.py'.
 
 
 
-UNDO
+UNDO    
 The 'u' (undo) command loads the last previous version of the project. Project
 versions are saved as .json files in the project's json/ subdirectory.  There
 is a complementary 'r' (redo) command that reloads newer versions in reverse
 order.  See the 'autosave' topic for more information.
 
 
-VIEW
+VIEW  
 The 'v voice firstbar lastbar' (view) command prints the pitch/rhythm/lyric
 tokens you've entered for the specified voice and bar numbers. The same
 information is provided for the preceding and following bars to assist in
