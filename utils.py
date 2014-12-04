@@ -2,6 +2,7 @@
 Miscellaneous functions and decorators.
 """
 import os
+import re
 def advance_generator_once(original_fn):
     """
     From Ian Ward's blog article at http://excess.org/article/2013/02/itergen2/
@@ -121,6 +122,69 @@ def lilysafe_name(name):
         else:
             return ""
     return ''.join([safechar(c) for c in name])    
+
+
+
+def gather_token_sequences(masterptn, target):
+    """
+    Find all sequences in 'target' of two or more identical adjacent tokens
+    that match 'masterptn'.  Count the number of tokens in each sequence.
+    Return a new version of 'target' with each sequence replaced by one token
+    suffixed with '*N' where N is the count of tokens in the sequence.
+    Whitespace in the input is preserved (except where consumed within replaced
+    sequences).
+
+    >>> mptn = r'ab\w'
+    >>> tgt = 'foo abc abc'
+    >>> gather_token_sequences(mptn, tgt)
+    'foo abc*2'
+
+    >>> tgt = 'abc abc '
+    >>> gather_token_sequences(mptn, tgt)
+    'abc*2 '
+
+    >>> tgt = '\\nabc\\nabc abc\\ndef\\nxyz abx\\nabx\\nxxx abc'
+    >>> gather_token_sequences(mptn, tgt)
+    '\\nabc*3\\ndef\\nxyz abx*2\\nxxx abc'
+    """
+
+    # Emulate python's strip() function except that the leading and trailing
+    # whitespace are captured for final output. This guarantees that the
+    # body of the remaining string will start and end with a token, which
+    # slightly simplifies the subsequent matching loops.
+    stripped = re.match(r'^(\s*)(\S.*\S)(\s*)$', target, flags=re.DOTALL)
+    head, body, tail = stripped.groups()
+
+    # Init the result list and loop variables.
+    result = [head]
+    i = 0
+    token = None
+    while i < len(body):
+        ## try to match master pattern
+        match = re.match(masterptn, body[i:])
+        if match is None:
+            ## Append char and advance.
+            result += body[i]
+            i += 1
+
+        else:
+            ## Start new token sequence
+            token = match.group(0)
+            esc = re.escape(token) # might have special chars in token
+            ptn = r"((?:{}\s+)+{})".format(esc, esc)
+            seq = re.match(ptn, body[i:])
+            if seq is None: # token is not repeated.
+                result.append(token)
+                i += len(token)
+            else:
+                seqstring = seq.group(0)
+                replacement = "{}*{}".format(token, seqstring.count(token))
+                result.append(replacement)
+                i += len(seq.group(0))
+
+
+    result.append(tail)
+    return ''.join(result)
 
 if __name__ == '__main__':
     from doctest import testmod
