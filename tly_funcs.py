@@ -285,15 +285,16 @@ def add_voice(voice, music, jsonfp):
     else:
         _ = dict()
         props = "name abbr rel clef has_lyrics".split(' ')
-        defaults = ('Bass I', 'B1', 'c', 'bass', 'y')
-        for k, dflt in zip(props, defaults) :
-            _[k] = rli.rlinput("{} :".format(k), dflt, 
+        examples = ('(e.g. Bass I) ', '(e.g. B1) ', 
+                    '(e.g. c) ', '(e.g. bass) ', '(y/n) ')
+        for k, eg in zip(props, examples) :
+            _[k] = rli.rlinput("{} {}:".format(k, eg), 
                                oneline=True, ctxkey='_top')
 
         if _['has_lyrics'].startswith('y'):
             _['has_lyrics'] = True
         else:
-            _['has_lyrics'] = False
+            _['has_lyrics'] = False               
 
         ## Allow '**' magic. pylint: disable=W0142
         music[voice] = mk_voice_dict(**_)
@@ -409,7 +410,11 @@ def insert_rests(music, voice, firstbar, lastbar):
                                        [rest,]*nbars, i0)        
         vdict['rhythm'] = insertrange(vdict['rhythm'],
                                       [barlength,]*nbars, i0)        
-    
+        try:
+            vdict['lyrics'] = insertrange(vdict['lyrics'], ['',]*nbars, i0)
+        except KeyError:
+            pass # no lyrics in this voice
+
 if __name__ == '__main__':
     from doctest import testmod
     testmod()
